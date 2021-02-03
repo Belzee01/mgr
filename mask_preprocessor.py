@@ -34,7 +34,7 @@ if __name__ == "__main__":
                     sep_mask = np.array(Image.open(path).convert('P'))
                     # print(np.unique(sep_mask))
 
-                    mask[sep_mask == 255] = 255
+                    mask[sep_mask == 225] = 255
             cv2.imwrite('{}/{}.png'.format(mask_path, j), mask)
             print('{}/{}.png'.format(mask_path, j))
 
