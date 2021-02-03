@@ -12,7 +12,7 @@ from tensorflow.python.keras import Model, Input
 from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Add, Dropout
 from tqdm import tqdm
 
-from tensorboard_callbacks import TrainValTensorBoard, TensorBoardMask
+from tensorboard_callbacks import TensorBoardMask
 
 
 class FCN_8:
@@ -157,7 +157,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=64, epochs=400, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=400, callbacks=callbacks)
 
 model.save('saved_model/fcn8')
 
