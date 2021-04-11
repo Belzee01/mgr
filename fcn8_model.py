@@ -12,7 +12,7 @@ from tensorflow.python.keras import Model, Input
 from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Add, Dropout
 from tqdm import tqdm
 
-from tensorboard_callbacks import TensorBoardMask
+from tensorboard_callbacks import TensorBoardMask2
 
 
 class FCN_8:
@@ -55,7 +55,7 @@ class FCN_8:
         pool3 = x
 
         # Block 4
-        x = Conv2D(2 ** (base + 3), (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
+        x = Conv2D(2 ** (base + 3), (3, 3), activation='relu', padding='same', name='block4_conv1')(pool3)
         x = Conv2D(2 ** (base + 3), (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
         x = Conv2D(2 ** (base + 3), (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
         pool4 = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
@@ -68,6 +68,7 @@ class FCN_8:
 
         conv6 = Conv2D(4096, (7, 7), activation='relu', padding='same', name="conv6")(pool5)
         conv6 = Dropout(0.5)(conv6)
+
         conv7 = Conv2D(4096, (1, 1), activation='relu', padding='same', name="conv7")(conv6)
         conv7 = Dropout(0.5)(conv7)
 
@@ -136,7 +137,7 @@ TEST_LENGTH = 2
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 2000
+TRAIN_LENGTH = 100
 
 test_inputs, test_labels, train_inputs, train_labels = DataGenerator.get_data_sets(IMG_WIDTH, IMG_HEIGHT, TRAIN_LENGTH,
                                                                                    TEST_LENGTH, IMG_CHANNELS)
@@ -148,21 +149,21 @@ model = FCN_8.create(input_shape=INPUT_SHAPE, base=6)
 checkpoint = tf.keras.callbacks.ModelCheckpoint('fcn8_mask.h5', verbose=1, save_best_only=True)
 
 # Model callbacks
-logdir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+logdir = "logs/fit/fcn" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 callbacks = [
     # checkpoint,
     tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
-    TensorBoardMask(original_images=train_inputs[:10], log_dir=logdir, log_freq=10)
+    TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=400, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=200, callbacks=callbacks)
 
 model.save('saved_model/fcn8')
 
 y_pred = model.predict(test_inputs)
-y_predi = (y_pred > 0.5).astype(np.uint8)
+y_predi = y_pred
 
 shape = (224, 224)
 for i in range(TEST_LENGTH):
@@ -175,7 +176,7 @@ for i in range(TEST_LENGTH):
     ax.set_title("original")
 
     ax = fig.add_subplot(1, 3, 2)
-    ax.imshow(seg)
+    ax.imshow(seg, cmap='hot', interpolation='nearest')
     ax.set_title("predicted class")
 
     ax = fig.add_subplot(1, 3, 3)

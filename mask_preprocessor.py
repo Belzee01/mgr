@@ -14,11 +14,8 @@ if __name__ == "__main__":
     for i in range(15):
         # files = os.listdir(osp.join(face_sep_mask, str(i)))
 
-        # atts = ['skin', 'l_brow', 'r_brow', 'l_eye', 'r_eye', 'eye_g', 'l_ear', 'r_ear', 'ear_r',
-        #         'nose', 'mouth', 'u_lip', 'l_lip', 'neck', 'neck_l', 'cloth', 'hair', 'hat']
-
-        atts = ['skin', 'l_brow', 'r_brow', 'l_eye', 'r_eye', 'eye_g', 'l_ear', 'r_ear', 'ear_r',
-                'nose', 'mouth', 'u_lip', 'l_lip', 'neck', 'neck_l', 'cloth', 'hair', 'hat']
+        atts = ['hair', 'l_brow', 'l_eye', 'l_lip', 'mouth', 'neck', 'nose', 'r_brow', 'r_eye',
+                'skin', 'u_lip', 'cloth', 'r_ear', 'l_ear', 'hat', 'eye_g', 'neck_l', 'ear_r']
 
         for j in range(i * 2000, (i + 1) * 2000):
 
