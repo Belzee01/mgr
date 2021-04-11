@@ -2,7 +2,7 @@
 
 # imshape should have 3 channels for rgb input images
 # (height, width)
-imshape = (256, 256, 3)
+imshape = (512, 512, 3)
 # set your classification mode (binary or multi)
 mode = 'binary'
 # model_name (unet or fcn_8)
