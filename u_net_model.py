@@ -1,18 +1,17 @@
 import datetime
 import os.path as osp
 import random
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from skimage.io import imread, imshow
+from skimage.io import imread
 from skimage.transform import resize
 from tqdm import tqdm
 
 from metrics import dice
-from tensorboard_callbacks import TensorBoardMask
+from tensorboard_callbacks import TensorBoardMask2
 
 
 class U_Net:
@@ -241,7 +240,7 @@ callbacks = [
     # checkpoint,
     tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
-    TensorBoardMask(original_images=test_inputs, log_dir=logdir, log_freq=5)
+    TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
 ]
 
 # Model learning

@@ -1,17 +1,14 @@
 import datetime
-import os.path as osp
 from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from PIL import Image
-from skimage.io import imread
-from skimage.transform import resize
 from tensorflow.python.keras import Model, Input
 from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Add, Dropout
-from tqdm import tqdm
 
+from config import color_labels, id2code
+from data_generator import generate_labels, generate_training_set, onehot_to_rgb
 from tensorboard_callbacks import TensorBoardMask2
 
 
@@ -92,39 +89,6 @@ class FCN_8:
         return model
 
 
-class DataGenerator:
-    @staticmethod
-    def get_data_sets(img_width, img_height, training_length, testing_length, img_channels=3):
-        train_inputs = np.zeros((training_length + testing_length, img_height, img_width, img_channels), dtype=np.uint8)
-        train_labels = np.zeros((training_length + testing_length, img_height, img_width, 1), dtype=np.uint8)
-
-        face_data = './CelebAMask-HQ/CelebA-HQ-img'
-        mask_data = './CelebAMask-HQ/mask'
-
-        # Load input data
-        for i, id_ in tqdm(enumerate(range(0, training_length + testing_length)),
-                           total=training_length + testing_length):
-            train_filename = str(i) + '.jpg'
-            mask_filename = str(i) + '.png'
-            train_path = osp.join(face_data, train_filename)
-            mask_path = osp.join(mask_data, mask_filename)
-            input = imread(train_path)[:, :, :img_channels]
-            input = resize(input, (img_height, img_width), mode='constant', preserve_range=True)
-            train_inputs[i] = input
-            # Set singular label
-            mask = np.zeros((img_height, img_width))
-            sep_mask = np.array(Image.open(mask_path).convert('P'))
-            sep_mask = resize(sep_mask, (img_height, img_width), mode='constant', preserve_range=True)
-            mask[sep_mask == 255] = 1
-            mask = np.expand_dims(resize(mask, (img_height, img_width), mode='constant',
-                                         preserve_range=True), axis=-1)
-            train_labels[i] = mask
-        # testing inputs, testing labels, training inputs, training labels
-        return train_inputs[training_length: training_length + testing_length], \
-               train_labels[training_length: training_length + testing_length], \
-               train_inputs[:TRAIN_LENGTH], train_labels[:TRAIN_LENGTH]
-
-
 seed = 42
 np.random.seed = seed
 
@@ -137,13 +101,16 @@ TEST_LENGTH = 2
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 100
+TRAIN_LENGTH = 10
 
-test_inputs, test_labels, train_inputs, train_labels = DataGenerator.get_data_sets(IMG_WIDTH, IMG_HEIGHT, TRAIN_LENGTH,
-                                                                                   TEST_LENGTH, IMG_CHANNELS)
+train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
+train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
+
+test_inputs = [train_inputs[5]]
+test_labels = [train_labels[5]]
 
 # Model
-model = FCN_8.create(input_shape=INPUT_SHAPE, base=6)
+model = FCN_8.create(input_shape=INPUT_SHAPE, base=6, n_classes=len(color_labels))
 
 # Model checkpoints
 checkpoint = tf.keras.callbacks.ModelCheckpoint('fcn8_mask.h5', verbose=1, save_best_only=True)
@@ -176,10 +143,11 @@ for i in range(TEST_LENGTH):
     ax.set_title("original")
 
     ax = fig.add_subplot(1, 3, 2)
-    ax.imshow(seg, cmap='hot', interpolation='nearest')
+    # ax.imshow(seg, cmap='hot', interpolation='nearest')
+    ax.imshow(onehot_to_rgb(y_predi[i], id2code))
     ax.set_title("predicted class")
 
     ax = fig.add_subplot(1, 3, 3)
-    ax.imshow(np.squeeze(test_labels[i]))
+    ax.imshow(onehot_to_rgb(test_labels[i], id2code))
     ax.set_title("true class")
     plt.show()
