@@ -43,16 +43,16 @@ def generate_training_set(training_lenth, img_height, img_width, img_channels):
     return train_inputs
 
 
-def generate_labels(training_lenth, img_height, img_width):
+def generate_labels(training_length, img_height, img_width):
     labels_length = len(color_labels)
     data_set_path = '/Users/klipensk/Documents/CelebAMask-HQ'
 
     atts = ['skin', 'cloth', 'hair', 'l_brow', 'l_eye', 'l_lip', 'mouth', 'neck', 'nose', 'r_brow', 'r_eye',
             'u_lip', 'r_ear', 'l_ear', 'hat', 'eye_g', 'neck_l', 'ear_r']
 
-    output_images = np.zeros((training_lenth, img_height, img_width, labels_length), dtype=np.uint8)
+    output_images = np.zeros((training_length, img_height, img_width, labels_length), dtype=np.uint8)
     masks_path = data_set_path + '/CelebAMask-HQ-mask-anno/0/'
-    for seq, _id in tqdm(enumerate(range(0, training_lenth)), total=training_lenth):
+    for seq, _id in tqdm(enumerate(range(0, training_length)), total=training_length):
         masks = []
         id2code = {k + 1: v for k, v in enumerate(color_labels)}
 
@@ -62,6 +62,8 @@ def generate_labels(training_lenth, img_height, img_width):
                 mask = np.array(Image.open(file_name).convert('P'))
                 mask = resize(mask, (img_height, img_width), mode='constant', preserve_range=True)
                 mask[mask == 225] = l
+                # mask = np.expand_dims(resize(mask, (img_height, img_width), mode='constant', preserve_range=True),
+                #                       axis=-1)
                 masks.append(mask)
 
         coded_masks = np.array(masks)

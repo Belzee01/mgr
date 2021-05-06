@@ -21,7 +21,7 @@ class FCN_8:
         return x
 
     @staticmethod
-    def create(input_shape: Tuple[int, int, int], n_classes=1, base=4, predefined=False):
+    def create(input_shape: Tuple[int, int, int], n_classes=1, base=4):
         if n_classes == 1:
             loss = 'binary_crossentropy'
             final_act = 'sigmoid'
@@ -106,8 +106,8 @@ TRAIN_LENGTH = 10
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
 
-test_inputs = [train_inputs[5]]
-test_labels = [train_labels[5]]
+test_inputs = train_inputs[5:7]
+test_labels = train_labels[5:7]
 
 # Model
 model = FCN_8.create(input_shape=INPUT_SHAPE, base=6, n_classes=len(color_labels))
@@ -125,7 +125,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=200, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=4, epochs=10, callbacks=callbacks)
 
 model.save('saved_model/fcn8')
 
@@ -143,7 +143,6 @@ for i in range(TEST_LENGTH):
     ax.set_title("original")
 
     ax = fig.add_subplot(1, 3, 2)
-    # ax.imshow(seg, cmap='hot', interpolation='nearest')
     ax.imshow(onehot_to_rgb(y_predi[i], id2code))
     ax.set_title("predicted class")
 

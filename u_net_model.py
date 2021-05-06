@@ -181,8 +181,8 @@ class DataGenerator:
         train_inputs = np.zeros((training_length + testing_length, img_height, img_width, img_channels), dtype=np.uint8)
         train_labels = np.zeros((training_length + testing_length, img_height, img_width, 1), dtype=np.uint8)
 
-        face_data = './CelebAMask-HQ/CelebA-HQ-img'
-        mask_data = './CelebAMask-HQ/mask'
+        face_data = '/Users/klipensk/Documents/CelebAMask-HQ/CelebA-HQ-img'
+        mask_data = '/Users/klipensk/Documents/CelebAMask-HQ/mask'
 
         # Load input data
         for i, id_ in tqdm(enumerate(range(0, training_length + testing_length)),
@@ -196,7 +196,8 @@ class DataGenerator:
             train_inputs[i] = input
             # Set singular label
             mask = np.zeros((img_height, img_width))
-            sep_mask = np.array(Image.open(mask_path).convert('P'))
+            # sep_mask = np.array(Image.open(mask_path).convert('P'))
+            sep_mask = np.zeros((img_height, img_width))
             sep_mask = resize(sep_mask, (img_height, img_width), mode='constant', preserve_range=True)
             mask[sep_mask == 255] = 1
             mask = np.expand_dims(resize(mask, (img_height, img_width), mode='constant',
@@ -219,10 +220,10 @@ IMG_CHANNELS = 3
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 1000
+TRAIN_LENGTH = 100
 
-face_data = './CelebAMask-HQ/CelebA-HQ-img'
-mask_data = './CelebAMask-HQ/mask'
+face_data = '/Users/klipensk/Documents/CelebAMask-HQ/CelebA-HQ-img'
+mask_data = '/Users/klipensk/Documents/CelebAMask-HQ/mask'
 
 # Load test data
 TEST_LENGTH = 2
