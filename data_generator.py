@@ -6,7 +6,7 @@ from PIL import Image
 from skimage.io import imread
 from skimage.transform import resize
 
-from config import color_labels
+from config import color_labels, data_set_path
 from tqdm import tqdm
 
 
@@ -31,7 +31,6 @@ def onehot_to_rgb(onehot, colormap):
 
 
 def generate_training_set(training_lenth, img_height, img_width, img_channels):
-    data_set_path = '/Users/klipensk/Documents/CelebAMask-HQ'
     masks_path = data_set_path + '/CelebA-HQ-img/'
     train_inputs = np.zeros((training_lenth, img_height, img_width, img_channels), dtype=np.uint8)
     for seq, _id in tqdm(enumerate(range(0, training_lenth)), total=training_lenth):
@@ -45,7 +44,6 @@ def generate_training_set(training_lenth, img_height, img_width, img_channels):
 
 def generate_labels(training_length, img_height, img_width):
     labels_length = len(color_labels)
-    data_set_path = '/Users/klipensk/Documents/CelebAMask-HQ'
 
     atts = ['skin', 'cloth', 'hair', 'l_brow', 'l_eye', 'l_lip', 'mouth', 'neck', 'nose', 'r_brow', 'r_eye',
             'u_lip', 'r_ear', 'l_ear', 'hat', 'eye_g', 'neck_l', 'ear_r']
@@ -62,8 +60,6 @@ def generate_labels(training_length, img_height, img_width):
                 mask = np.array(Image.open(file_name).convert('P'))
                 mask = resize(mask, (img_height, img_width), mode='constant', preserve_range=True)
                 mask[mask == 225] = l
-                # mask = np.expand_dims(resize(mask, (img_height, img_width), mode='constant', preserve_range=True),
-                #                       axis=-1)
                 masks.append(mask)
 
         coded_masks = np.array(masks)
