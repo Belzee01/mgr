@@ -8,7 +8,7 @@ mode = 'binary'
 # model_name (unet or fcn_8)
 model_name = 'unet_' + mode
 
-data_set_path = 'D:\Projects\mgr\CelebAMask-HQ'
+data_set_path = '/Users/klipensk/Documents/CelebAMask-HQ'
 
 # classes are defined in hues
 # background should be left out

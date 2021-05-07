@@ -1,15 +1,11 @@
 import datetime
-import os.path as osp
-import random
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from PIL import Image
-from skimage.io import imread
-from skimage.transform import resize
-from tqdm import tqdm
 
+from config import color_labels, id2code
+from data_generator import generate_training_set, generate_labels, onehot_to_rgb
 from metrics import dice
 from tensorboard_callbacks import TensorBoardMask2
 
@@ -175,40 +171,6 @@ class U_Net:
         return model
 
 
-class DataGenerator:
-    @staticmethod
-    def get_data_sets(img_width, img_height, training_length, testing_length, img_channels=3):
-        train_inputs = np.zeros((training_length + testing_length, img_height, img_width, img_channels), dtype=np.uint8)
-        train_labels = np.zeros((training_length + testing_length, img_height, img_width, 1), dtype=np.uint8)
-
-        face_data = '/Users/klipensk/Documents/CelebAMask-HQ/CelebA-HQ-img'
-        mask_data = '/Users/klipensk/Documents/CelebAMask-HQ/mask'
-
-        # Load input data
-        for i, id_ in tqdm(enumerate(range(0, training_length + testing_length)),
-                           total=training_length + testing_length):
-            train_filename = str(i) + '.jpg'
-            mask_filename = str(i) + '.png'
-            train_path = osp.join(face_data, train_filename)
-            mask_path = osp.join(mask_data, mask_filename)
-            input = imread(train_path)[:, :, :img_channels]
-            input = resize(input, (img_height, img_width), mode='constant', preserve_range=True)
-            train_inputs[i] = input
-            # Set singular label
-            mask = np.zeros((img_height, img_width))
-            # sep_mask = np.array(Image.open(mask_path).convert('P'))
-            sep_mask = np.zeros((img_height, img_width))
-            sep_mask = resize(sep_mask, (img_height, img_width), mode='constant', preserve_range=True)
-            mask[sep_mask == 255] = 1
-            mask = np.expand_dims(resize(mask, (img_height, img_width), mode='constant',
-                                         preserve_range=True), axis=-1)
-            train_labels[i] = mask
-        # testing inputs, testing labels, training inputs, training labels
-        return train_inputs[training_length: training_length + testing_length], \
-               train_labels[training_length: training_length + testing_length], \
-               train_inputs[:TRAIN_LENGTH], train_labels[:TRAIN_LENGTH]
-
-
 seed = 42
 np.random.seed = seed
 
@@ -221,24 +183,27 @@ INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
 TRAIN_LENGTH = 100
-
-face_data = '/Users/klipensk/Documents/CelebAMask-HQ/CelebA-HQ-img'
-mask_data = '/Users/klipensk/Documents/CelebAMask-HQ/mask'
-
-# Load test data
 TEST_LENGTH = 2
-test_inputs, test_labels, train_inputs, train_labels = \
-    DataGenerator.get_data_sets(IMG_WIDTH, IMG_HEIGHT, TRAIN_LENGTH, TEST_LENGTH, IMG_CHANNELS)
+
+train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
+train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
+
+test_inputs = train_inputs[5:10]
+test_labels = train_labels[5:10]
+
 # Model
-model = U_Net.create(base=2)
+model = U_Net.create(base=2, n_classes=len(color_labels))
 
 # Model checkpoints
-checkpoint = tf.keras.callbacks.ModelCheckpoint('model_mask.h5', verbose=1, save_best_only=True)
+model_name = 'unet_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_name + '.model'), verbose=1,
+                                                save_best_only=True, mode='max',
+                                                save_weights_only=False, period=10)
 
 # Model callbacks
-logdir = "logs/fit/unet" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+logdir = "logs/fit/" + model_name
 callbacks = [
-    # checkpoint,
+    checkpoint,
     tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
     TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
@@ -247,35 +212,26 @@ callbacks = [
 # Model learning
 result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=16, epochs=200, callbacks=callbacks)
 
-for key in ['loss', 'val_loss']:
-    plt.plot(result.history[key], label=key)
-plt.legend()
-plt.show()
+model.save('models/' + model_name + '.model')
 
-model.save('saved_model/u-net' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+y_pred = model.predict(test_inputs)
+y_predi = y_pred
 
-idx = random.randint(0, len(train_inputs))
+shape = (224, 224)
+for i in range(TEST_LENGTH):
+    img_is = (test_inputs[i])
+    seg = y_predi[i]
 
-preds_train = model.predict(train_inputs[:int(train_inputs.shape[0] * 0.9)], verbose=1)
-preds_val = model.predict(train_inputs[int(train_inputs.shape[0] * 0.9):], verbose=1)
-# preds_test = model.predict(, verbose=1)
+    fig = plt.figure(figsize=(1, 3))
+    ax = fig.add_subplot(1, 3, 1)
+    ax.imshow(img_is)
+    ax.set_title("original")
 
-preds_train_t = (preds_train > 0.5).astype(np.uint8)
-preds_val_t = (preds_val > 0.5).astype(np.uint8)
-# preds_test_t = (preds_test > 0.5).astype(np.uint8)
+    ax = fig.add_subplot(1, 3, 2)
+    ax.imshow(onehot_to_rgb(y_predi[i], id2code))
+    ax.set_title("predicted class")
 
-# Perform a sanity check on some random training samples
-f, axarr = plt.subplots(3, 1)
-ix = random.randint(0, len(preds_train_t))
-axarr[0].imshow(train_inputs[:int(train_inputs.shape[0] * 0.9)][ix])
-axarr[1].imshow(np.squeeze(train_labels[int(train_inputs.shape[0] * 0.9):][ix]))
-axarr[2].imshow(np.squeeze(preds_train_t[ix]))
-plt.show()
-
-# Perform a sanity check on some random validation samples
-f, axarr2 = plt.subplots(3, 1)
-ix = random.randint(0, len(preds_train_t))
-axarr2[0].imshow(train_inputs[:int(train_inputs.shape[0] * 0.9)][ix])
-axarr2[1].imshow(np.squeeze(train_labels[int(train_inputs.shape[0] * 0.9):][ix]))
-axarr2[2].imshow(np.squeeze(preds_val_t[ix]))
-plt.show()
+    ax = fig.add_subplot(1, 3, 3)
+    ax.imshow(onehot_to_rgb(test_labels[i], id2code))
+    ax.set_title("true class")
+    plt.show()

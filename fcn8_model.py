@@ -128,7 +128,7 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_nam
 # Model callbacks
 logdir = "logs/fit/" + model_name
 callbacks = [
-    # checkpoint,
+    checkpoint,
     tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
     TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
