@@ -252,7 +252,7 @@ for key in ['loss', 'val_loss']:
 plt.legend()
 plt.show()
 
-model.save('saved_model/u-net')
+model.save('saved_model/u-net' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
 idx = random.randint(0, len(train_inputs))
 

@@ -1,4 +1,5 @@
 import datetime
+import os
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -55,7 +56,6 @@ class FCN_8:
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
         pool3 = x
 
-
         # Block 4
         x = Conv2D(2 ** (base + 3), (3, 3), activation='relu', padding='same', name='block4_conv1')(pool3)
         x = Dropout(0.2)(x)
@@ -88,7 +88,7 @@ class FCN_8:
                             activation=final_act)(u4_skip)
 
         model = Model(inputs=i, outputs=o, name='fcn8')
-        model.compile(optimizer=tf.keras.optimizers.Adam(8e-5),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=5e-5, decay=0.1),
                       loss=loss,
                       metrics=[dice, 'accuracy'])
         model.summary()
@@ -120,7 +120,10 @@ test_labels = train_labels[5:10]
 model = FCN_8.create(input_shape=INPUT_SHAPE, base=6, n_classes=len(color_labels))
 
 # Model checkpoints
-checkpoint = tf.keras.callbacks.ModelCheckpoint('fcn8_mask.h5', verbose=1, save_best_only=True)
+model_name = 'fcn8_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_name + '.model'), verbose=1,
+                                                save_best_only=True, mode='max',
+                                                save_weights_only=False, period=10)
 
 # Model callbacks
 logdir = "logs/fit/fcn_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -132,9 +135,9 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.3, batch_size=4, epochs=400, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=4, epochs=400, callbacks=callbacks)
 
-model.save('saved_model/fcn8')
+model.save('models/' + model_name + '.model')
 
 y_pred = model.predict(test_inputs)
 y_predi = y_pred

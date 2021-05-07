@@ -1,4 +1,5 @@
 import datetime
+import os
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -113,8 +114,10 @@ test_labels = train_labels[5:10]
 model = FCN_8.create(input_shape=INPUT_SHAPE, base=6, n_classes=len(color_labels))
 
 # Model checkpoints
-checkpoint = tf.keras.callbacks.ModelCheckpoint('fcn8_mask.h5', verbose=1, save_best_only=True)
-
+model_name = 'fcn8_elu_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_name + '.model'), verbose=1,
+                                                save_best_only=True, mode='max',
+                                                save_weights_only=False, period=10)
 # Model callbacks
 logdir = "logs/fit/fcn_elu_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 callbacks = [
@@ -127,7 +130,7 @@ callbacks = [
 # Model learning
 result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=4, epochs=400, callbacks=callbacks)
 
-model.save('saved_model/fcn8')
+model.save('models/' + model_name + '.model')
 
 y_pred = model.predict(test_inputs)
 y_predi = y_pred
