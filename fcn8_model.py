@@ -126,7 +126,7 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_nam
                                                 save_weights_only=False, period=10)
 
 # Model callbacks
-logdir = "logs/fit/fcn_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+logdir = "logs/fit/" + model_name
 callbacks = [
     # checkpoint,
     tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),

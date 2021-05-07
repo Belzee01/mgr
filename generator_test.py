@@ -1,4 +1,5 @@
-from data_generator import generate_training_set, generate_labels
+from config import id2code
+from data_generator import generate_training_set, generate_labels, onehot_to_rgb
 import matplotlib.pyplot as plt
 
 
@@ -7,17 +8,20 @@ labels = generate_labels(1, 224, 224)
 print(images)
 label = labels[0]
 
-f, axarr = plt.subplots(10, 2)
+f, axarr = plt.subplots(2, 10)
 
-axarr[9][1].imshow(images[0])
-axarr[9][1].set_title("original")
+axarr[1][9].imshow(images[0])
+axarr[1][9].set_title("original")
+
+axarr[1][8].imshow(onehot_to_rgb(label, id2code))
+axarr[1][8].set_title("truth")
 
 for i in range(label.shape[2]):
     if i > 9:
-        axarr[i - 10][1].imshow(label[:, :, i])
-        axarr[i - 10][1].set_title("layer " + str(i))
+        axarr[1][i - 10].imshow(label[:, :, i])
+        axarr[1][i - 10].set_title("layer " + id2code[i+1])
     else:
-        axarr[i][0].imshow(label[:, :, i])
-        axarr[i][0].set_title("layer " + str(i))
+        axarr[0][i].imshow(label[:, :, i])
+        axarr[0][i].set_title("layer " + id2code[i+1])
 
 plt.show()
