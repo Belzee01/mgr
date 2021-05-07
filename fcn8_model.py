@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import Model, Input
+from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
 from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Add, Dropout
 
 from config import color_labels, id2code
@@ -17,10 +18,7 @@ from tensorboard_callbacks import TensorBoardMask2
 class FCN_8:
     @staticmethod
     def preprocess_input(x):
-        x /= 255.
-        x -= 0.5
-        x *= 2.
-        return x
+        return preprocess_input(x, mode='tf')
 
     @staticmethod
     def create(input_shape: Tuple[int, int, int], n_classes=1, base=4):

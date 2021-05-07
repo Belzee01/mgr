@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
 
 from config import color_labels, id2code
 from data_generator import generate_training_set, generate_labels, onehot_to_rgb
@@ -14,8 +15,7 @@ from tensorboard_callbacks import TensorBoardMask2
 class U_Net:
     @staticmethod
     def preprocess_input(x):
-        x /= 255
-        return x
+        return preprocess_input(x, mode='tf')
 
     @staticmethod
     def create(n_classes=1, base=2, predefined=False):
