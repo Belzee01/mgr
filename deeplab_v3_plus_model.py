@@ -1,22 +1,21 @@
 import datetime
 import os
 from typing import Tuple
-from tensorflow.keras import backend as K
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import backend as K
 from tensorflow.python.keras import Model, Input
-from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Add, Dropout, BatchNormalization, \
+from tensorflow.python.keras import layers
+from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
+from tensorflow.python.keras.layers import Conv2D, Dropout, BatchNormalization, \
     Activation, GlobalAveragePooling2D, Lambda, ZeroPadding2D, Concatenate, DepthwiseConv2D
 
 from config import color_labels, id2code
 from data_generator import generate_labels, generate_training_set, onehot_to_rgb
 from metrics import dice
 from tensorboard_callbacks import TensorBoardMask2
-
-from tensorflow.python.keras import layers
-from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
 
 
 class Deeplabv3:
@@ -25,7 +24,7 @@ class Deeplabv3:
         return preprocess_input(x, mode='tf')
 
     @staticmethod
-    def create(input_shape: Tuple[int, int, int], n_classes=1, base=4):
+    def create(input_shape: Tuple[int, int, int], n_classes=1, base=4, OS=8):
         if n_classes == 1:
             loss = 'binary_crossentropy'
             final_act = 'sigmoid'
@@ -44,20 +43,24 @@ class Deeplabv3:
             exit_block_rates = (1, 2)
             atrous_rates = (6, 12, 18)
 
+        b = base
         i = Input(shape=input_shape)
+
         s = tf.keras.layers.Lambda(Deeplabv3.preprocess_input)(i)
-        x = Conv2D(32, (3, 3), strides=(2, 2), name='entry_flow_conv1_1', use_bias=False, padding='same')(i)
+
+        x = Conv2D(2 ** (b + 1), (3, 3), strides=(2, 2), name='entry_flow_conv1_1', use_bias=False, padding='same')(s)
         x = BatchNormalization(name='entry_flow_conv1_1_BN')(x)
         x = Activation(tf.nn.relu)(x)
 
-        x = Conv2D(64, (3, 3), strides=(1, 1), padding='same', use_bias=False, dilation_rate=(1, 1),
+        x = Conv2D(2 ** (b + 2), (3, 3), strides=(1, 1), padding='same', use_bias=False, dilation_rate=(1, 1),
                    name='entry_flow_conv1_2')(x)
         x = BatchNormalization(name='entry_flow_conv1_2_BN')(x)
         x = Activation(tf.nn.relu)(x)
 
         x = Deeplabv3.xception_block(x, [128, 128, 128], 'entry_flow_block1', skip_connection_type='conv', stride=2,
                                      depth_activation=False)
-        x, skip1 = Deeplabv3.xception_block(x, [256, 256, 256], 'entry_flow_block2', skip_connection_type='conv', stride=2,
+        x, skip1 = Deeplabv3.xception_block(x, [256, 256, 256], 'entry_flow_block2', skip_connection_type='conv',
+                                            stride=2,
                                             depth_activation=False, return_skip=True)
 
         x = Deeplabv3.xception_block(x, [728, 728, 728], 'entry_flow_block3',
@@ -84,7 +87,7 @@ class Deeplabv3:
         # from (b_size, channels)->(b_size, 1, 1, channels)
         b4 = Lambda(lambda x: K.expand_dims(x, 1))(b4)
         b4 = Lambda(lambda x: K.expand_dims(x, 1))(b4)
-        b4 = Conv2D(256, (1, 1), padding='same', use_bias=False, name='image_pooling')(b4)
+        b4 = Conv2D(2 ** (b + 4), (1, 1), padding='same', use_bias=False, name='image_pooling')(b4)
         b4 = BatchNormalization(name='image_pooling_BN', epsilon=1e-5)(b4)
         b4 = Activation(tf.nn.relu)(b4)
 
@@ -93,22 +96,21 @@ class Deeplabv3:
         b4 = Lambda(lambda x: tf.compat.v1.image.resize(x, size_before[1:3],
                                                         method='bilinear', align_corners=True))(b4)
         # simple 1x1
-        b0 = Conv2D(256, (1, 1), padding='same', use_bias=False, name='aspp0')(x)
+        b0 = Conv2D(2 ** (b + 4), (1, 1), padding='same', use_bias=False, name='aspp0')(x)
         b0 = BatchNormalization(name='aspp0_BN', epsilon=1e-5)(b0)
         b0 = Activation(tf.nn.relu, name='aspp0_activation')(b0)
 
         # rate = 6 (12)
-        b1 = Deeplabv3.SepConv_BN(x, 256, 'aspp1', rate=atrous_rates[0], depth_activation=True, epsilon=1e-5)
+        b1 = Deeplabv3.SepConv_BN(x, 2 ** (b + 4), 'aspp1', rate=atrous_rates[0], depth_activation=True, epsilon=1e-5)
         # rate = 12 (24)
-        b2 = Deeplabv3.SepConv_BN(x, 256, 'aspp2', rate=atrous_rates[1], depth_activation=True, epsilon=1e-5)
+        b2 = Deeplabv3.SepConv_BN(x, 2 ** (b + 4), 'aspp2', rate=atrous_rates[1], depth_activation=True, epsilon=1e-5)
         # rate = 18 (36)
-        b3 = Deeplabv3.SepConv_BN(x, 256, 'aspp3', rate=atrous_rates[2], depth_activation=True, epsilon=1e-5)
+        b3 = Deeplabv3.SepConv_BN(x, 2 ** (b + 4), 'aspp3', rate=atrous_rates[2], depth_activation=True, epsilon=1e-5)
 
         # concatenate ASPP branches & project
         x = Concatenate()([b4, b0, b1, b2, b3])
 
-        x = Conv2D(256, (1, 1), padding='same',
-                   use_bias=False, name='concat_projection')(x)
+        x = Conv2D(2 ** (b + 4), (1, 1), padding='same', use_bias=False, name='concat_projection')(x)
         x = BatchNormalization(name='concat_projection_BN', epsilon=1e-5)(x)
         x = Activation(tf.nn.relu)(x)
         x = Dropout(0.1)(x)
@@ -119,21 +121,19 @@ class Deeplabv3:
         skip_size = tf.keras.backend.int_shape(skip1)
         x = Lambda(lambda xx: tf.compat.v1.image.resize(xx, skip_size[1:3], method='bilinear', align_corners=True))(x)
 
-        dec_skip1 = Conv2D(48, (1, 1), padding='same',
-                           use_bias=False, name='feature_projection0')(skip1)
-        dec_skip1 = BatchNormalization(
-            name='feature_projection0_BN', epsilon=1e-5)(dec_skip1)
+        dec_skip1 = Conv2D(48, (1, 1), padding='same', use_bias=False, name='feature_projection0')(skip1)
+        dec_skip1 = BatchNormalization(name='feature_projection0_BN', epsilon=1e-5)(dec_skip1)
         dec_skip1 = Activation(tf.nn.relu)(dec_skip1)
+
         x = Concatenate()([x, dec_skip1])
-        x = Deeplabv3.SepConv_BN(x, 256, 'decoder_conv0',
-                       depth_activation=True, epsilon=1e-5)
-        x = Deeplabv3.SepConv_BN(x, 256, 'decoder_conv1',
-                       depth_activation=True, epsilon=1e-5)
+        x = Deeplabv3.SepConv_BN(x, 2 ** (b + 4), 'decoder_conv0', depth_activation=True, epsilon=1e-5)
+        x = Deeplabv3.SepConv_BN(x, 2 ** (b + 4), 'decoder_conv1', depth_activation=True, epsilon=1e-5)
 
         x = Conv2D(n_classes, (1, 1), padding='same', name="last layer")(x)
         size_before3 = tf.keras.backend.int_shape(i)
         x = Lambda(lambda xx: tf.compat.v1.image.resize(xx, size_before3[1:3], method='bilinear', align_corners=True))(
             x)
+
         # Oytputs
         o = tf.keras.layers.Activation(final_act)(x)
 
@@ -149,17 +149,17 @@ class Deeplabv3:
         residual = inputs
         for i in range(3):
             residual = Deeplabv3.SepConv_BN(residual,
-                                  depth_list[i],
-                                  prefix + '_separable_conv{}'.format(i + 1),
-                                  stride=stride if i == 2 else 1,
-                                  rate=rate,
-                                  depth_activation=depth_activation)
+                                            depth_list[i],
+                                            prefix + '_separable_conv{}'.format(i + 1),
+                                            stride=stride if i == 2 else 1,
+                                            rate=rate,
+                                            depth_activation=depth_activation)
             if i == 1:
                 skip = residual
         if skip_connection_type == 'conv':
             shortcut = Deeplabv3.conv2d_same(inputs, depth_list[-1], prefix + '_shortcut',
-                                              kernel_size=1,
-                                              stride=stride)
+                                             kernel_size=1,
+                                             stride=stride)
             shortcut = BatchNormalization(name=prefix + '_shortcut_BN')(shortcut)
             outputs = layers.add([residual, shortcut])
         elif skip_connection_type == 'sum':
