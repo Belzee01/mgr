@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 from config import imshape, id2code
-from data_generator import onehot_to_rgb
+from data_generator import onehot_to_rgb, prediction_to_rgb
 
 
 class TensorBoardMask2(tf.keras.callbacks.Callback):
@@ -34,7 +34,7 @@ class TensorBoardMask2(tf.keras.callbacks.Callback):
         self.step += 1
 
     def add_masks(self, pred):
-        return onehot_to_rgb(pred, id2code)
+        return prediction_to_rgb(pred, id2code)
 
     def predict(self, im):
         if imshape[2] == 1:

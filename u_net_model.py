@@ -41,8 +41,7 @@ class U_Net:
         # Step 2
         p_1 = tf.keras.layers.MaxPooling2D((2, 2))(c_1)
         c_2 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            p_1)
+                                     padding='same')(p_1)
         c_2 = tf.keras.layers.Dropout(0.1)(c_2)
         c_2 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
                                      padding='same')(c_2)
@@ -50,8 +49,7 @@ class U_Net:
         # Step 3
         p_2 = tf.keras.layers.MaxPooling2D((2, 2))(c_2)
         c_3 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            p_2)
+                                     padding='same')(p_2)
         c_3 = tf.keras.layers.Dropout(0.1)(c_3)
         c_3 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
                                      padding='same')(c_3)
@@ -59,8 +57,7 @@ class U_Net:
         # Step 4
         p_3 = tf.keras.layers.MaxPooling2D((2, 2))(c_3)
         c_4 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            p_3)
+                                     padding='same')(p_3)
         c_4 = tf.keras.layers.Dropout(0.1)(c_4)
         c_4 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
                                      padding='same')(c_4)
@@ -68,8 +65,7 @@ class U_Net:
         # Step 5
         p_4 = tf.keras.layers.MaxPooling2D((2, 2))(c_4)
         c_5 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            p_4)
+                                     padding='same')(p_4)
         c_5 = tf.keras.layers.Dropout(0.1)(c_5)
         c_5 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
                                      padding='same')(c_5)
@@ -77,94 +73,84 @@ class U_Net:
         # Step 6
         p_5 = tf.keras.layers.MaxPooling2D((2, 2))(c_5)
         c_6 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            p_5)
+                                     padding='same')(p_5)
         c_6 = tf.keras.layers.Dropout(0.1)(c_6)
         c_6 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            c_6)
+                                     padding='same')(c_6)
 
         # Step 6
         p_6 = tf.keras.layers.MaxPooling2D((2, 2))(c_6)
         c_7 = tf.keras.layers.Conv2D(2 ** (b + 6), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            p_6)
+                                     padding='same')(p_6)
         c_7 = tf.keras.layers.Dropout(0.1)(c_7)
         c_7 = tf.keras.layers.Conv2D(2 ** (b + 6), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            c_7)
+                                     padding='same')(c_7)
 
         # Expansion path
         # Step 1
         u_6 = tf.keras.layers.Conv2DTranspose(2 ** (b + 5), (2, 2), strides=(2, 2), padding='same')(c_7)
         u_6 = tf.keras.layers.concatenate([u_6, c_6])
         c_8 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            u_6)
+                                     padding='same')(u_6)
+
         c_8 = tf.keras.layers.Dropout(0.1)(c_8)
         c_8 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            c_8)
+                                     padding='same')(c_8)
 
         # Step 2
         u_7 = tf.keras.layers.Conv2DTranspose(2 ** (b + 4), (2, 2), strides=(2, 2), padding='same')(c_8)
         u_7 = tf.keras.layers.concatenate([u_7, c_5])
         c_9 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            u_7)
+                                     padding='same')(u_7)
+
         c_9 = tf.keras.layers.Dropout(0.1)(c_9)
         c_9 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                     padding='same')(
-            c_9)
+                                     padding='same')(c_9)
 
         # Step 3
         u_8 = tf.keras.layers.Conv2DTranspose(2 ** (b + 3), (2, 2), strides=(2, 2), padding='same')(c_9)
         u_8 = tf.keras.layers.concatenate([u_8, c_4])
         c_10 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            u_8)
+                                      padding='same')(u_8)
+
         c_10 = tf.keras.layers.Dropout(0.1)(c_10)
         c_10 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            c_10)
+                                      padding='same')(c_10)
 
         # Step 4
         u_9 = tf.keras.layers.Conv2DTranspose(2 ** (b + 2), (2, 2), strides=(2, 2), padding='same')(c_10)
         u_9 = tf.keras.layers.concatenate([u_9, c_3])
         c_11 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            u_9)
+                                      padding='same')(u_9)
+
         c_11 = tf.keras.layers.Dropout(0.1)(c_11)
         c_11 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            c_11)
+                                      padding='same')(c_11)
 
         # Step 5
         u_10 = tf.keras.layers.Conv2DTranspose(2 ** (b + 1), (2, 2), strides=(2, 2), padding='same')(c_11)
         u_10 = tf.keras.layers.concatenate([u_10, c_2])
         c_12 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            u_10)
+                                      padding='same')(u_10)
+
         c_12 = tf.keras.layers.Dropout(0.1)(c_12)
         c_12 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            c_12)
+                                      padding='same')(c_12)
 
         # Step 6
         u_11 = tf.keras.layers.Conv2DTranspose(2 ** b, (2, 2), strides=(2, 2), padding='same')(c_12)
         u_11 = tf.keras.layers.concatenate([u_11, c_1])
         c_13 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            u_11)
+                                      padding='same')(u_11)
+
         c_13 = tf.keras.layers.Dropout(0.1)(c_13)
         c_13 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal',
-                                      padding='same')(
-            c_13)
+                                      padding='same')(c_13)
 
         outputs = tf.keras.layers.Conv2D(n_classes, (1, 1), activation=final_act)(c_13)
 
         model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=5e-6),
                       loss=loss,
                       metrics=[dice, "accuracy"])
         model.summary()
@@ -183,7 +169,7 @@ IMG_CHANNELS = 3
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 1200
+TRAIN_LENGTH = 1000
 TEST_LENGTH = 2
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
@@ -212,7 +198,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=18, epochs=1200, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=18, epochs=1000, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 

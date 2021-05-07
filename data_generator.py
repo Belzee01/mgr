@@ -30,6 +30,14 @@ def onehot_to_rgb(onehot, colormap):
     return np.uint8(output)
 
 
+def prediction_to_rgb(pred, colormap):
+    single_layer = np.argmax(pred, axis=-1)
+    output = np.zeros(pred.shape[:2] + (3,))
+    for k in colormap.keys():
+        output[single_layer == k] = color_labels[colormap[k]]
+    return np.uint8(output)
+
+
 def generate_training_set(training_lenth, img_height, img_width, img_channels):
     masks_path = data_set_path + '/CelebA-HQ-img/'
     train_inputs = np.zeros((training_lenth, img_height, img_width, img_channels), dtype=np.uint8)
