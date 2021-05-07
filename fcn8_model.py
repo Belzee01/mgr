@@ -88,7 +88,7 @@ class FCN_8:
                             activation=final_act)(u4_skip)
 
         model = Model(inputs=i, outputs=o, name='fcn8')
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=5e-5, decay=0.1),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                       loss=loss,
                       metrics=[dice, 'accuracy'])
         model.summary()
