@@ -81,9 +81,9 @@ class FCN_8:
                             activation=final_act)(u4_skip)
 
         model = Model(inputs=i, outputs=o, name="fcn8_elu")
-        model.compile(optimizer=tf.keras.optimizers.Adam(1e-4),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=5e-5, decay=0.1),
                       loss=loss,
-                      metrics=[dice])
+                      metrics=[dice, "accuracy"])
         model.summary()
 
         return model
@@ -101,7 +101,7 @@ TEST_LENGTH = 2
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 1500
+TRAIN_LENGTH = 500
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
@@ -116,7 +116,7 @@ model = FCN_8.create(input_shape=INPUT_SHAPE, base=6, n_classes=len(color_labels
 checkpoint = tf.keras.callbacks.ModelCheckpoint('fcn8_mask.h5', verbose=1, save_best_only=True)
 
 # Model callbacks
-logdir = "logs/fit/fcn" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+logdir = "logs/fit/fcn_elu_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 callbacks = [
     # checkpoint,
     tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
@@ -125,7 +125,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.3, batch_size=8, epochs=400, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=4, epochs=400, callbacks=callbacks)
 
 model.save('saved_model/fcn8')
 

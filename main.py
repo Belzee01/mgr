@@ -66,3 +66,4 @@ decoded = onehot_to_rgb(encoded, id2code)
 # ax1 = fig.add_subplot(1, 2, 1)
 # ax1.imshow(decoded)
 # plt.show()
+
