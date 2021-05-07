@@ -108,7 +108,7 @@ TEST_LENGTH = 2
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 500
+TRAIN_LENGTH = 1000
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
@@ -135,7 +135,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=4, epochs=400, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=200, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 

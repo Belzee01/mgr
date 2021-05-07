@@ -1,4 +1,5 @@
 import datetime
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -165,7 +166,7 @@ class U_Net:
         model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
         model.compile(optimizer=tf.keras.optimizers.Adam(1e-4),
                       loss=loss,
-                      metrics=[dice])
+                      metrics=[dice, "accuracy"])
         model.summary()
 
         return model
@@ -210,7 +211,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=16, epochs=200, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=100, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 

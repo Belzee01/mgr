@@ -82,7 +82,7 @@ class FCN_8:
                             activation=final_act)(u4_skip)
 
         model = Model(inputs=i, outputs=o, name="fcn8_elu")
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=9e-5, decay=0.1),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                       loss=loss,
                       metrics=[dice, "accuracy"])
         model.summary()
@@ -102,7 +102,7 @@ TEST_LENGTH = 2
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 200
+TRAIN_LENGTH = 100
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
@@ -128,7 +128,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=4, epochs=200, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=100, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 
