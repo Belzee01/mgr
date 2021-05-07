@@ -164,7 +164,7 @@ class U_Net:
         outputs = tf.keras.layers.Conv2D(n_classes, (1, 1), activation=final_act)(c_13)
 
         model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
-        model.compile(optimizer=tf.keras.optimizers.Adam(1e-4),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4, decay=0.1),
                       loss=loss,
                       metrics=[dice, "accuracy"])
         model.summary()
@@ -183,7 +183,7 @@ IMG_CHANNELS = 3
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 100
+TRAIN_LENGTH = 300
 TEST_LENGTH = 2
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
@@ -211,7 +211,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=32, epochs=100, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=64, epochs=100, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 

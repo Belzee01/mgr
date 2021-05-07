@@ -6,7 +6,7 @@ from PIL import Image
 from skimage.io import imread
 from skimage.transform import resize
 
-from config import color_labels, data_set_path
+from config import color_labels, data_set_path, id2code
 from tqdm import tqdm
 
 
@@ -45,14 +45,12 @@ def generate_training_set(training_lenth, img_height, img_width, img_channels):
 def generate_labels(training_length, img_height, img_width):
     labels_length = len(color_labels)
 
-    atts = ['skin', 'cloth', 'hair', 'l_brow', 'l_eye', 'l_lip', 'mouth', 'neck', 'nose', 'r_brow', 'r_eye',
-            'u_lip', 'r_ear', 'l_ear', 'hat', 'eye_g', 'neck_l', 'ear_r']
+    atts = color_labels.keys()
 
     output_images = np.zeros((training_length, img_height, img_width, labels_length), dtype=np.uint8)
     masks_path = data_set_path + '/CelebAMask-HQ-mask-anno/0/'
     for seq, _id in tqdm(enumerate(range(0, training_length)), total=training_length):
         masks = []
-        id2code = {k + 1: v for k, v in enumerate(color_labels)}
 
         for l, att in enumerate(atts, 1):
             file_name = masks_path + ''.join([str(seq).rjust(5, '0'), '_', att, '.png'])
