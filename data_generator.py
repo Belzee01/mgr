@@ -21,9 +21,9 @@ def rgb_to_onehot(rgb_image, colormap):
 
 
 def onehot_to_rgb(onehot, colormap):
-    single_layer = np.nanargmax(onehot, axis=-1)
-    skin_layer = np.nanargmin(onehot, axis=-1)
-    single_layer[skin_layer == 1] = 1
+    single_layer = np.zeros((onehot.shape[:2]), dtype=np.uint8)
+    for i in range(onehot.shape[2]):
+        single_layer[onehot[:, :, i] == 1] = (i + 1)
     output = np.zeros(onehot.shape[:2] + (3,))
     for k in colormap.keys():
         output[single_layer == k] = color_labels[colormap[k]]

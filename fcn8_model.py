@@ -94,6 +94,11 @@ class FCN_8:
         return model
 
 
+# GPU
+# print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+# tf.debugging.set_log_device_placement(True)
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+
 seed = 42
 np.random.seed = seed
 
@@ -133,7 +138,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=64, epochs=100, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=18, epochs=300, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 

@@ -8,16 +8,17 @@ mode = 'binary'
 # model_name (unet or fcn_8)
 model_name = 'unet_' + mode
 
-data_set_path = '/Users/klipensk/Documents/CelebAMask-HQ'
+data_set_path = 'D:\Projects\mgr\CelebAMask-HQ'
 
 # classes are defined in hues
 # background should be left out
-color_labels = {'skin': (0, 120, 0),
-                'hair': (240, 0, 60),
-                'mouth': (60, 0, 0),
-                'neck': (120, 0, 0),
-                'nose': (180, 0, 0),
-                }
+color_labels = {
+    'skin': (0, 120, 0),
+    'hair': (240, 0, 60),
+    'mouth': (60, 0, 0),
+    'neck': (120, 0, 0),
+    'nose': (180, 0, 0),
+}
 
 id2code = {k + 1: v for k, v in enumerate(color_labels)}
 

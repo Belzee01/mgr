@@ -15,7 +15,7 @@ from tensorboard_callbacks import TensorBoardMask2
 class U_Net:
     @staticmethod
     def preprocess_input(x):
-        return preprocess_input(x, mode='tf')
+        return preprocess_input(x, mode='torch')
 
     @staticmethod
     def create(n_classes=1, base=2, predefined=False):
@@ -164,7 +164,7 @@ class U_Net:
         outputs = tf.keras.layers.Conv2D(n_classes, (1, 1), activation=final_act)(c_13)
 
         model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4, decay=0.1),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5),
                       loss=loss,
                       metrics=[dice, "accuracy"])
         model.summary()
@@ -183,7 +183,7 @@ IMG_CHANNELS = 3
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 300
+TRAIN_LENGTH = 1200
 TEST_LENGTH = 2
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
@@ -198,6 +198,7 @@ model = U_Net.create(base=2, n_classes=len(color_labels))
 # Model checkpoints
 model_name = 'unet_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_name + '.model'), verbose=1,
+                                                monitor='dice',
                                                 save_best_only=True, mode='max',
                                                 save_weights_only=False, period=10)
 
@@ -205,13 +206,13 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_nam
 logdir = "logs/fit/" + model_name
 callbacks = [
     checkpoint,
-    tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
+    # tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
     TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=64, epochs=100, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=18, epochs=1200, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 
