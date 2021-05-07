@@ -225,8 +225,8 @@ seed = 42
 np.random.seed = seed
 
 # Input dimensions
-IMG_WIDTH = 224
-IMG_HEIGHT = 224
+IMG_WIDTH = 512
+IMG_HEIGHT = 512
 IMG_CHANNELS = 3
 TEST_LENGTH = 2
 
@@ -242,7 +242,7 @@ test_inputs = train_inputs[5:10]
 test_labels = train_labels[5:10]
 
 # Model
-model = FCN_8.create(input_shape=INPUT_SHAPE, base=6, n_classes=len(color_labels))
+model = Deeplabv3.create(input_shape=INPUT_SHAPE, base=4, n_classes=len(color_labels))
 
 # Model checkpoints
 model_name = 'fcn8_elu_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
