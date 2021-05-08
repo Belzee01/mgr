@@ -34,7 +34,7 @@ class TensorBoardMask2(tf.keras.callbacks.Callback):
         self.step += 1
 
     def add_masks(self, pred):
-        return prediction_to_rgb(pred, id2code)
+        return onehot_to_rgb(pred, id2code)
 
     def predict(self, im):
         if imshape[2] == 1:

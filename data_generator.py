@@ -5,9 +5,9 @@ import numpy as np
 from PIL import Image
 from skimage.io import imread
 from skimage.transform import resize
+from tqdm import tqdm
 
 from config import color_labels, data_set_path, id2code
-from tqdm import tqdm
 
 
 def rgb_to_onehot(rgb_image, colormap):
@@ -23,7 +23,9 @@ def rgb_to_onehot(rgb_image, colormap):
 def onehot_to_rgb(onehot, colormap):
     single_layer = np.zeros((onehot.shape[:2]), dtype=np.uint8)
     for i in range(onehot.shape[2]):
-        single_layer[onehot[:, :, i] == 1] = (i + 1)
+        mask = np.round(onehot[:, :, i])
+        mask = mask.astype(dtype=np.uint8)
+        single_layer[mask == 1] = (i + 1)
     output = np.zeros(onehot.shape[:2] + (3,))
     for k in colormap.keys():
         output[single_layer == k] = color_labels[colormap[k]]

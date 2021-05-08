@@ -1,64 +1,52 @@
-import tensorflow as tf
-import numpy as np
-from tqdm import tqdm
-import os.path as osp
 import matplotlib.pyplot as plt
-from skimage.io import imread, imshow
-from skimage.transform import resize
-from PIL import Image
-import random
+from tensorflow.keras.models import load_model
+from tensorflow.python.keras.applications.imagenet_utils import preprocess_input, _preprocess_symbolic_input
+from tensorflow.python.keras.optimizer_v2.adam import Adam
 
-model = tf.keras.models.load_model('saved_model/my_model')
+from config import id2code
+from data_generator import generate_training_set, generate_labels, onehot_to_rgb
+from metrics import dice
+
+model = load_model('models/unet_20210508-230446.model',
+                   custom_objects={'dice': dice, 'preprocess_input': preprocess_input,
+                                   '_preprocess_symbolic_input': _preprocess_symbolic_input
+                                   })
 model.summary()
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[dice, "accuracy"])
 
 # Input dimensions
 IMG_WIDTH = 512
 IMG_HEIGHT = 512
 IMG_CHANNELS = 3
-ITEM_LENGTH = 3
+ITEM_LENGTH = 2
 
 # Load test data
-face_data = './CelebAMask-HQ/CelebA-HQ-img'
-mask_data = './CelebAMask-HQ/mask'
-TEST_LENGTH = 2
-TEST_OFFSET = 4004
-test_inputs = np.zeros((TEST_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
-test_labels = np.zeros((TEST_LENGTH, IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.uint8)
+images = generate_training_set(ITEM_LENGTH, IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
+labels = generate_labels(ITEM_LENGTH, IMG_WIDTH, IMG_HEIGHT)
 
-for i, id_ in tqdm(enumerate(range(TEST_OFFSET, TEST_OFFSET + TEST_LENGTH)), total=TEST_LENGTH):
-    train_filename = str(i) + '.jpg'
-    mask_filename = str(i) + '.png'
-    train_path = osp.join(face_data, train_filename)
-    mask_path = osp.join(mask_data, mask_filename)
-    input = imread(train_path)[:, :, :IMG_CHANNELS]
-    input = resize(input, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
-    test_inputs[i] = input
-    # Set singular label
-    mask = np.zeros((512, 512))
-    sep_mask = np.array(Image.open(mask_path).convert('P'))
-    mask[sep_mask == 255] = 1
-    mask = np.expand_dims(resize(mask, (IMG_HEIGHT, IMG_WIDTH), mode='constant',
-                                 preserve_range=True), axis=-1)
-    test_labels[i] = mask
-
-loss, acc = model.evaluate(test_inputs, test_labels, verbose=2)
+loss, dice, acc = model.evaluate(images, labels, verbose=2)
 print('Restored model, accuracy: {:5.2f}%'.format(100 * acc))
-preds_test = model.predict(test_inputs[int(test_inputs.shape[0] * 0.1):], verbose=1)
-preds_test_t = (preds_test > 0.5).astype(np.uint8)
+preds_test = model.predict(images, verbose=1)
+label = labels[0]
+pred_label = preds_test[0]
 
-# Perform a sanity check on some random training samples
-fig = plt.figure(figsize=(1, 3))
-ix = random.randint(0, len(preds_test_t) - 1)
-ax = fig.add_subplot(1, 3, 1)
-ax.imshow(test_inputs[ix])
-ax.set_title("original")
+f, axarr = plt.subplots(2, 5)
 
-ax = fig.add_subplot(1, 3, 2)
-ax.imshow(np.squeeze(test_labels[ix]))
-ax.set_title("true class")
+axarr[1][4].imshow(images[0])
+axarr[1][4].set_title("original")
 
-ax = fig.add_subplot(1, 3, 3)
-ax.imshow(np.squeeze(preds_test_t[ix]))
-ax.set_title("predicted class")
+axarr[1][3].imshow(onehot_to_rgb(label, id2code))
+axarr[1][3].set_title("truth")
+
+axarr[1][2].imshow(onehot_to_rgb(pred_label, id2code))
+axarr[1][2].set_title("prediction mask")
+
+for i in range(label.shape[2]):
+    if i > 5:
+        axarr[1][i - 5].imshow(pred_label[:, :, i])
+        axarr[1][i - 5].set_title("layer " + id2code[i + 1])
+    else:
+        axarr[0][i].imshow(pred_label[:, :, i])
+        axarr[0][i].set_title("layer " + id2code[i + 1])
 
 plt.show()
