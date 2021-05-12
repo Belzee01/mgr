@@ -1,7 +1,7 @@
 from tensorflow.keras import backend as keras
 
 
-def dice(y_true, y_pred, smooth=0.01):
+def dice(y_true, y_pred, smooth=1e-4):
     y_true_f = keras.flatten(y_true)
     y_pred_f = keras.flatten(y_pred)
     intersection = keras.sum(y_true_f * y_pred_f)

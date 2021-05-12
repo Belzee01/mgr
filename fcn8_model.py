@@ -10,7 +10,7 @@ from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
 from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Add, Dropout
 
 from config import color_labels, id2code
-from data_generator import generate_labels, generate_training_set, onehot_to_rgb
+from data_generator import generate_labels, generate_training_set, onehot_to_rgb, shuffle
 from metrics import dice
 from tensorboard_callbacks import TensorBoardMask2
 
@@ -115,6 +115,8 @@ TRAIN_LENGTH = 300
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
+
+train_inputs, train_labels = shuffle(train_inputs, train_labels)
 
 test_inputs = train_inputs[5:10]
 test_labels = train_labels[5:10]

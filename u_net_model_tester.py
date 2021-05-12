@@ -7,7 +7,7 @@ from config import id2code
 from data_generator import generate_training_set, generate_labels, onehot_to_rgb
 from metrics import dice
 
-model = load_model('models/unet_20210508-230446.model',
+model = load_model('models/unet_elu_20210511-180856.model',
                    custom_objects={'dice': dice, 'preprocess_input': preprocess_input,
                                    '_preprocess_symbolic_input': _preprocess_symbolic_input
                                    })
@@ -30,21 +30,21 @@ preds_test = model.predict(images, verbose=1)
 label = labels[0]
 pred_label = preds_test[0]
 
-f, axarr = plt.subplots(2, 5)
+f, axarr = plt.subplots(2, 4)
 
-axarr[1][4].imshow(images[0])
-axarr[1][4].set_title("original")
+axarr[1][3].imshow(images[0])
+axarr[1][3].set_title("original")
 
-axarr[1][3].imshow(onehot_to_rgb(label, id2code))
-axarr[1][3].set_title("truth")
+axarr[1][2].imshow(onehot_to_rgb(label, id2code))
+axarr[1][2].set_title("truth")
 
-axarr[1][2].imshow(onehot_to_rgb(pred_label, id2code))
-axarr[1][2].set_title("prediction mask")
+axarr[1][1].imshow(onehot_to_rgb(pred_label, id2code))
+axarr[1][1].set_title("prediction mask")
 
 for i in range(label.shape[2]):
-    if i > 5:
-        axarr[1][i - 5].imshow(pred_label[:, :, i])
-        axarr[1][i - 5].set_title("layer " + id2code[i + 1])
+    if i > 3:
+        axarr[1][i - 4].imshow(pred_label[:, :, i])
+        axarr[1][i - 4].set_title("layer " + id2code[i + 1])
     else:
         axarr[0][i].imshow(pred_label[:, :, i])
         axarr[0][i].set_title("layer " + id2code[i + 1])

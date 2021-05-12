@@ -83,3 +83,11 @@ def generate_labels(training_length, img_height, img_width):
         encoded = rgb_to_onehot(output, id2code)
         output_images[seq] = encoded
     return output_images
+
+
+def shuffle(inputs, labels):
+    indices = np.arange(inputs.shape[0])
+    np.random.shuffle(indices)
+    a = inputs[indices]
+    b = labels[indices]
+    return a, b

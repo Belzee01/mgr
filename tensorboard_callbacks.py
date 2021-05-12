@@ -37,11 +37,6 @@ class TensorBoardMask2(tf.keras.callbacks.Callback):
         return onehot_to_rgb(pred, id2code)
 
     def predict(self, im):
-        if imshape[2] == 1:
-            im = im.reshape(im.shape[0], imshape[1], 1)
-        elif imshape[2] == 3:
-            im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-            im = im.reshape(im.shape[0], im.shape[1], 3)
         im = np.expand_dims(im, axis=0)
         pred = self.model.predict(im)
         mask = self.add_masks(np.squeeze(pred))
