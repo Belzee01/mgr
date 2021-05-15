@@ -61,14 +61,17 @@ def generate_labels(training_length, img_height, img_width):
     masks_path = data_set_path + '/CelebAMask-HQ-mask-anno/0/'
     for seq, _id in tqdm(enumerate(range(0, training_length)), total=training_length):
         masks = []
+        background_mask = np.ones((img_height, img_width, 1))
 
         for l, att in enumerate(atts, 1):
-            file_name = masks_path + ''.join([str(seq).rjust(5, '0'), '_', att, '.png'])
-            if os.path.exists(file_name):
-                mask = np.array(Image.open(file_name).convert('P'))
-                mask = resize(mask, (img_height, img_width), mode='constant', preserve_range=True)
-                mask[mask == 225] = l
-                masks.append(mask)
+            if att != 'background':
+                file_name = masks_path + ''.join([str(seq).rjust(5, '0'), '_', att, '.png'])
+                if os.path.exists(file_name):
+                    mask = np.array(Image.open(file_name).convert('P'))
+                    mask = resize(mask, (img_height, img_width), mode='constant', preserve_range=True)
+                    mask[mask == 225] = l
+                    background_mask[mask == 225] = 0
+                    masks.append(mask)
 
         coded_masks = np.array(masks)
 

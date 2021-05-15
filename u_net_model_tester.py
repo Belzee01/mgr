@@ -7,7 +7,7 @@ from config import id2code
 from data_generator import generate_training_set, generate_labels, onehot_to_rgb
 from metrics import dice
 
-model = load_model('models/unet_elu_20210511-180856.model',
+model = load_model('models/unet_20210515-160017.model',
                    custom_objects={'dice': dice, 'preprocess_input': preprocess_input,
                                    '_preprocess_symbolic_input': _preprocess_symbolic_input
                                    })

@@ -176,7 +176,7 @@ IMG_CHANNELS = 3
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 3500
+TRAIN_LENGTH = 9000
 TEST_LENGTH = 2
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
@@ -188,8 +188,8 @@ test_inputs = train_inputs[5:10]
 test_labels = train_labels[5:10]
 
 # Model
-model = create(base=2, n_classes=len(color_labels), pretrained=True,
-               pretrained_model_path='models/unet_20210512-003446.model',
+model = create(base=2, n_classes=len(color_labels), pretrained=False,
+               pretrained_model_path='models/unet_20210515-134641.model',
                learning_rate=1e-5)
 
 # Model checkpoints
@@ -209,7 +209,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.2, batch_size=18, epochs=200, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.2, batch_size=18, epochs=100, callbacks=callbacks)
 
 model.save('saved_models/' + model_name + '.model')
 

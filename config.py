@@ -13,11 +13,13 @@ data_set_path = 'D:\Projects\mgr\CelebAMask-HQ'
 # classes are defined in hues
 # background should be left out
 color_labels = {
+    'background': (0, 0, 0),
     'skin': (0, 120, 0),
     'hair': (240, 0, 60),
-    'mouth': (60, 0, 0),
-    'neck': (120, 0, 0),
-    'nose': (180, 0, 0),
+    # TODO add background
+    # 'mouth': (60, 0, 0),
+    # 'neck': (120, 0, 0),
+    # 'nose': (180, 0, 0),
 }
 
 id2code = {k + 1: v for k, v in enumerate(color_labels)}
