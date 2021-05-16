@@ -91,7 +91,7 @@ def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', lear
                         activation=final_act)(u4_skip)
 
     model = Model(inputs=i, outputs=o, name='fcn8')
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
                   loss=loss,
                   metrics=[dice])
     model.summary()
@@ -154,7 +154,6 @@ model.save('models/' + model_name + '.model')
 y_pred = model.predict(test_inputs)
 y_predi = y_pred
 
-shape = (224, 224)
 for i in range(TEST_LENGTH):
     img_is = (test_inputs[i])
     seg = y_predi[i]

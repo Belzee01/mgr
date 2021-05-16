@@ -216,7 +216,6 @@ model.save('saved_models/' + model_name + '.model')
 y_pred = model.predict(test_inputs)
 y_predi = y_pred
 
-shape = (224, 224)
 for i in range(TEST_LENGTH):
     f, axarr = plt.subplots(2, 5)
 
