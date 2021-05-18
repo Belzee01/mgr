@@ -1,22 +1,23 @@
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from tensorflow.python.keras.applications.imagenet_utils import preprocess_input, _preprocess_symbolic_input
-from tensorflow.python.keras.optimizer_v2.adam import Adam
+import tensorflow as tf
 
 from config import id2code
 from data_generator import generate_training_set, generate_labels, onehot_to_rgb
 from metrics import dice
 
-model = load_model('models/fcn8_20210515-211336.model',
+model = load_model('models/deeplab_v3_20210516-132504.model',
                    custom_objects={'dice': dice, 'preprocess_input': preprocess_input,
-                                   '_preprocess_symbolic_input': _preprocess_symbolic_input
+                                   '_preprocess_symbolic_input': _preprocess_symbolic_input,
+                                   'tf.compat.v1.image.resize': tf.compat.v1.image.resize
                                    })
 model.summary()
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[dice, "accuracy"])
 
 # Input dimensions
-IMG_WIDTH = 224
-IMG_HEIGHT = 224
+IMG_WIDTH = 256
+IMG_HEIGHT = 256
 IMG_CHANNELS = 3
 ITEM_LENGTH = 2
 
