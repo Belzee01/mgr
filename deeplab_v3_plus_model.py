@@ -261,18 +261,18 @@ model = create(base=4, n_classes=len(color_labels), pretrained=False,
 model_name = 'deeplab_v3_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_name + '.model'), verbose=1,
                                                 save_best_only=True, mode='max',
-                                                save_weights_only=False, period=10)
+                                                save_weights_only=False, period=2)
 # Model callbacks
 logdir = "logs/fit/" + model_name
 callbacks = [
     checkpoint,
     # tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
-    TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
+    TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=1)
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.2, batch_size=2, epochs=1000, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.2, batch_size=2, epochs=10, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 
