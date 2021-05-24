@@ -14,11 +14,11 @@ from tensorflow.python.keras.models import load_model
 
 from config import color_labels, id2code
 from data_generator import generate_labels, generate_training_set, onehot_to_rgb
-from metrics import dice
+from metrics import dice, mean_iou
 from tensorboard_callbacks import TensorBoardMask2
 
 
-def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', learning_rate=1e-6, OS=8):
+def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', learning_rate=1e-6, OS=8, metrics=[dice]):
     if n_classes == 1:
         loss = 'binary_crossentropy'
         final_act = 'sigmoid'
@@ -33,7 +33,7 @@ def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', lear
                                            })
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate),
                       loss=loss,
-                      metrics=[dice])
+                      metrics=metrics)
         model.summary()
         return model
     if OS == 8:
@@ -145,7 +145,7 @@ def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', lear
     model = Model(inputs, outputs, name='deeplabv3plus')
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
                   loss=loss,
-                  metrics=[dice])
+                  metrics=metrics)
     model.summary()
 
     return model
@@ -251,7 +251,11 @@ test_labels = train_labels[5:10]
 # Model
 model = create(base=4, n_classes=len(color_labels), pretrained=False,
                pretrained_model_path='models/unet_20210515-134641.model',
-               learning_rate=1e-5)
+               learning_rate=1e-5, metrics=[
+                      dice,
+                      'accuracy',
+                      mean_iou
+                  ])
 
 # Model checkpoints
 model_name = 'deeplab_v3_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
