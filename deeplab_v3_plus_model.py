@@ -272,7 +272,7 @@ callbacks = [
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.2, batch_size=2, epochs=10, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.2, batch_size=2, epochs=30, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 

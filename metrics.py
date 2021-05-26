@@ -18,6 +18,13 @@ def mean_iou(y_true, y_pred):
     return tf.reduce_mean((intersect + smooth) / (union - intersect + smooth))
 
 
+def iou_coef(y_true, y_pred, smooth=1):
+    intersection = keras.sum(keras.abs(y_true * y_pred), axis=[1, 2, 3])
+    union = keras.sum(y_true, [1, 2, 3]) + keras.sum(y_pred, [1, 2, 3]) - intersection
+    iou = keras.mean((intersection + smooth) / (union + smooth), axis=0)
+    return iou
+
+
 def iou_loss(y_true, y_pred):
     y_true = tf.reshape(y_true, [-1])
     y_pred = tf.reshape(y_pred, [-1])
