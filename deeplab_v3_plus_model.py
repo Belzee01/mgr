@@ -38,7 +38,7 @@ def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', lear
         return model
     if OS == 8:
         entry_block3_stride = 1
-        middle_block_rate = 2  # ! Not mentioned in paper, but required
+        middle_block_rate = 2
         exit_block_rates = (2, 4)
         atrous_rates = (12, 24, 36)
     else:
@@ -136,8 +136,7 @@ def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', lear
 
     x = Conv2D(n_classes, (1, 1), padding='same', name="last_layer")(x)
     size_before3 = tf.keras.backend.int_shape(inputs)
-    x = Lambda(lambda xx: tf.compat.v1.image.resize(xx, size_before3[1:3], method='bilinear', align_corners=True))(
-        x)
+    x = Lambda(lambda xx: tf.compat.v1.image.resize(xx, size_before3[1:3], method='bilinear', align_corners=True))(x)
 
     # Outputs
     outputs = tf.keras.layers.Activation(final_act)(x)
@@ -155,18 +154,12 @@ def xception_block(inputs, depth_list, prefix, skip_connection_type, stride,
                    rate=1, depth_activation=False, return_skip=False):
     residual = inputs
     for i in range(3):
-        residual = SepConv_BN(residual,
-                              depth_list[i],
-                              prefix + '_separable_conv{}'.format(i + 1),
-                              stride=stride if i == 2 else 1,
-                              rate=rate,
-                              depth_activation=depth_activation)
+        residual = SepConv_BN(residual, depth_list[i], prefix + '_separable_conv{}'.format(i + 1),
+                              stride=stride if i == 2 else 1, rate=rate, depth_activation=depth_activation)
         if i == 1:
             skip = residual
     if skip_connection_type == 'conv':
-        shortcut = conv2d_same(inputs, depth_list[-1], prefix + '_shortcut',
-                               kernel_size=1,
-                               stride=stride)
+        shortcut = conv2d_same(inputs, depth_list[-1], prefix + '_shortcut', kernel_size=1, stride=stride)
         shortcut = BatchNormalization(name=prefix + '_shortcut_BN')(shortcut)
         outputs = layers.add([residual, shortcut])
     elif skip_connection_type == 'sum':
@@ -181,24 +174,16 @@ def xception_block(inputs, depth_list, prefix, skip_connection_type, stride,
 
 def conv2d_same(x, filters, prefix, stride=1, kernel_size=3, rate=1):
     if stride == 1:
-        return Conv2D(filters,
-                      (kernel_size, kernel_size),
-                      strides=(stride, stride),
-                      padding='same', use_bias=False,
-                      dilation_rate=(rate, rate),
-                      name=prefix)(x)
+        return Conv2D(filters, (kernel_size, kernel_size), strides=(stride, stride), padding='same', use_bias=False,
+                      dilation_rate=(rate, rate), name=prefix)(x)
     else:
         kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
         pad_total = kernel_size_effective - 1
         pad_beg = pad_total // 2
         pad_end = pad_total - pad_beg
         x = ZeroPadding2D((pad_beg, pad_end))(x)
-        return Conv2D(filters,
-                      (kernel_size, kernel_size),
-                      strides=(stride, stride),
-                      padding='valid', use_bias=False,
-                      dilation_rate=(rate, rate),
-                      name=prefix)(x)
+        return Conv2D(filters, (kernel_size, kernel_size), strides=(stride, stride), padding='valid', use_bias=False,
+                      dilation_rate=(rate, rate), name=prefix)(x)
 
 
 def SepConv_BN(x, filters, prefix, stride=1, kernel_size=3, rate=1, depth_activation=False, epsilon=1e-3):
@@ -252,10 +237,10 @@ test_labels = train_labels[5:10]
 model = create(base=4, n_classes=len(color_labels), pretrained=False,
                pretrained_model_path='models/unet_20210515-134641.model',
                learning_rate=1e-5, metrics=[
-                      dice,
-                      'accuracy',
-                      mean_iou
-                  ])
+        dice,
+        'accuracy',
+        mean_iou
+    ])
 
 # Model checkpoints
 model_name = 'deeplab_v3_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
