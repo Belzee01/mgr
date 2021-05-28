@@ -4,14 +4,13 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
+from tensorflow.keras.models import load_model
+from tensorflow.python.keras.applications.imagenet_utils import preprocess_input, _preprocess_symbolic_input
 
 from config import color_labels, id2code
 from data_generator import generate_training_set, generate_labels, onehot_to_rgb, shuffle
-from metrics import dice, mean_iou
+from metrics import dice, iou_coef
 from tensorboard_callbacks import TensorBoardMask2
-from tensorflow.keras.models import load_model
-from tensorflow.python.keras.applications.imagenet_utils import preprocess_input, _preprocess_symbolic_input
 
 
 def create(n_classes=1, base=2, pretrained=False, pretrained_model_path='', learning_rate=1e-6, metrics=[dice]):
@@ -176,7 +175,7 @@ IMG_CHANNELS = 3
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 9000
+TRAIN_LENGTH = 12000
 TEST_LENGTH = 2
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
@@ -191,10 +190,10 @@ test_labels = train_labels[5:10]
 model = create(base=2, n_classes=len(color_labels), pretrained=False,
                pretrained_model_path='models/unet_20210515-134641.model',
                learning_rate=1e-5, metrics=[
-                      dice,
-                      'accuracy',
-                      mean_iou
-                  ])
+        dice,
+        'accuracy',
+        iou_coef
+    ])
 
 # Model checkpoints
 model_name = 'unet_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -207,9 +206,8 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_nam
 logdir = "logs/fit/" + model_name
 callbacks = [
     checkpoint,
-    # tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
-    TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
+    TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=25)
 ]
 
 # Model learning

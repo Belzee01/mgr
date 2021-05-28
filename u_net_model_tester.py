@@ -1,11 +1,10 @@
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from tensorflow.python.keras.applications.imagenet_utils import preprocess_input, _preprocess_symbolic_input
-from tensorflow.python.keras.optimizer_v2.adam import Adam
 
 from config import id2code
 from data_generator import generate_training_set, generate_labels, onehot_to_rgb
-from metrics import dice, mean_iou, iou_coef
+from metrics import dice, iou_coef
 
 model = load_model('models/unet_20210523-140202.model',
                    custom_objects={'dice': dice, 'mean_iou': iou_coef, 'preprocess_input': preprocess_input,

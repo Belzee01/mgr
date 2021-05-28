@@ -11,7 +11,7 @@ from tensorflow.python.keras.models import load_model
 
 from config import color_labels, id2code
 from data_generator import generate_labels, generate_training_set, onehot_to_rgb, shuffle
-from metrics import dice, mean_iou
+from metrics import dice, iou_coef
 from tensorboard_callbacks import TensorBoardMask2
 
 
@@ -116,7 +116,7 @@ TEST_LENGTH = 2
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 9000
+TRAIN_LENGTH = 12000
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
@@ -132,7 +132,7 @@ model = create(base=6, n_classes=len(color_labels), pretrained=False,
                learning_rate=1e-5, metrics=[
                       dice,
                       'accuracy',
-                      mean_iou
+                      iou_coef
                   ])
 
 # Model checkpoints
@@ -145,13 +145,12 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join('models', model_nam
 logdir = "logs/fit/" + model_name
 callbacks = [
     checkpoint,
-    # tf.keras.callbacks.EarlyStopping(patience=4, monitor='val_loss'),
     tf.keras.callbacks.TensorBoard(log_dir=logdir),
     TensorBoardMask2(original_images=test_inputs, log_dir=logdir, log_freq=5)
 ]
 
 # Model learning
-result = model.fit(train_inputs, train_labels, validation_split=0.1, batch_size=14, epochs=100, callbacks=callbacks)
+result = model.fit(train_inputs, train_labels, validation_split=0.2, batch_size=14, epochs=100, callbacks=callbacks)
 
 model.save('models/' + model_name + '.model')
 

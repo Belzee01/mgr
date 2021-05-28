@@ -1,9 +1,8 @@
-import cv2
 import numpy as np
 import tensorflow as tf
 
-from config import imshape, id2code
-from data_generator import onehot_to_rgb, prediction_to_rgb
+from config import id2code
+from data_generator import onehot_to_rgb
 
 
 class TensorBoardMask2(tf.keras.callbacks.Callback):
