@@ -416,3 +416,4 @@ dmypy.json
 cython_debug/
 
 /CelebAMask-HQ/
+/saved_models/

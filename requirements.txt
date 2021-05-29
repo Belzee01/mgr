@@ -5,3 +5,5 @@ tensorflow~=2.4.1
 scikit-image~=0.18.1
 tqdm~=4.60.0
 seaborn~=0.11.1
+tensorflow-gpu~=2.4.1
+opencv-python~=4.5.1.48

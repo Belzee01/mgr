@@ -13,7 +13,8 @@ from tensorflow.python.keras.layers import Conv2D, Dropout, BatchNormalization, 
 from tensorflow.python.keras.models import load_model
 
 from config import color_labels, id2code
-from data_generator import generate_labels, generate_training_set, onehot_to_rgb
+from data_generator import generate_labels, generate_training_set, onehot_to_rgb, shuffle
+from image_preprocessing import gaussian_blur, mean_filter, noisy
 from metrics import dice, iou_coef
 from tensorboard_callbacks import TensorBoardMask2
 
@@ -229,6 +230,18 @@ TRAIN_LENGTH = 12000
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
+
+# Image manipulations
+train_inputs[:999] = [noisy(noise_type="gauss", image=image) for image in train_inputs[:999]]
+train_inputs[1000:1999] = [noisy(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
+train_inputs[2000:2999] = [noisy(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
+train_inputs[3000:3999] = [noisy(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
+
+train_inputs[4000:4999] = [mean_filter(image) for image in train_inputs[4000:4999]]
+train_inputs[5000:5999] = [gaussian_blur(image) for image in train_inputs[5000:5999]]
+
+# Shuffle
+train_inputs, train_labels = shuffle(train_inputs, train_labels)
 
 test_inputs = train_inputs[5:10]
 test_labels = train_labels[5:10]
