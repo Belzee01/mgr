@@ -55,5 +55,4 @@ def noisy(noise_type, image):
         noisy[noisy < 0.0] = 0.0
         noisy[noisy > 1.0] = 1.0
         noisy = noisy * 255
-        print(noisy)
         return noisy.astype(dtype=np.uint8)

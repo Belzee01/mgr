@@ -176,7 +176,7 @@ IMG_CHANNELS = 3
 INPUT_SHAPE = (IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS)
 
 # Input data
-TRAIN_LENGTH = 12000
+TRAIN_LENGTH = 9000
 TEST_LENGTH = 2
 
 train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
@@ -187,9 +187,9 @@ train_inputs[:999] = [noisy(noise_type="gauss", image=image) for image in train_
 train_inputs[1000:1999] = [noisy(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
 train_inputs[2000:2999] = [noisy(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
 train_inputs[3000:3999] = [noisy(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
-
-train_inputs[4000:4999] = [mean_filter(image) for image in train_inputs[4000:4999]]
-train_inputs[5000:5999] = [gaussian_blur(image) for image in train_inputs[5000:5999]]
+#
+# train_inputs[4000:4999] = [mean_filter(image) for image in train_inputs[4000:4999]]
+# train_inputs[5000:5999] = [gaussian_blur(image) for image in train_inputs[5000:5999]]
 
 # Shuffle
 train_inputs, train_labels = shuffle(train_inputs, train_labels)
