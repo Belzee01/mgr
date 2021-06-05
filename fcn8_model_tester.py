@@ -7,7 +7,7 @@ from data_generator import generate_training_set, generate_labels, onehot_to_rgb
 from metrics import dice, mean_iou, iou_coef
 
 model = load_model('models/fcn8_20210531-175746.model',
-                   custom_objects={'dice': dice, 'mean_iou': iou_coef, 'preprocess_input': preprocess_input,
+                   custom_objects={'dice': dice, 'iou_coef': iou_coef, 'preprocess_input': preprocess_input,
                                    '_preprocess_symbolic_input': _preprocess_symbolic_input
                                    })
 model.summary()
