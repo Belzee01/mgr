@@ -33,8 +33,9 @@ labels = generate_labels(ITEM_LENGTH, IMG_WIDTH, IMG_HEIGHT)
 loss, dice, acc, iou_coef = model.evaluate(images, labels, verbose=2)
 print('Restored model, accuracy: {:5.2f}%'.format(100 * acc))
 
+image_id = 3
 images = np.zeros((1, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
-test_image = plt.imread("D:\\Projects\\mgr\\test\\2_cropped.jpg")[:, :, :IMG_CHANNELS]
+test_image = plt.imread(f"D:\\Projects\\mgr\\test\\{image_id}_cropped.jpg")[:, :, :IMG_CHANNELS]
 ORIGINAL_WIDTH = test_image.shape[0]
 ORIGINAL_HEIGHT = test_image.shape[1]
 test_image = resize(test_image, (IMG_HEIGHT, IMG_WIDTH), preserve_range=True)
@@ -53,7 +54,7 @@ axarr[1][0].imshow(onehot_to_rgb(pred_label, id2code))
 axarr[1][0].set_title("prediction mask")
 
 threshold = 0.5
-alpha = 0.91
+alpha = 0.8
 result = images[0].copy()
 
 for i in range(label.shape[2]):
@@ -63,7 +64,7 @@ for i in range(label.shape[2]):
 
     mask = result.copy()
     if id2code[i + 1] == 'hair':
-        mask[pred_label[:, :, i] == 1.0] = (255, 255, 0)
+        mask[pred_label[:, :, i] == 1.0] = (255, 255, 125)
         result = cv2.addWeighted(mask, 1.0 - alpha, result, alpha, 0, mask)
     elif id2code[i + 1] == 'skin':
         mask[pred_label[:, :, i] == 1.0] = (0, 0, 0)
@@ -78,5 +79,6 @@ for i in range(label.shape[2]):
 
 axarr[1][1].imshow(result)
 axarr[1][1].set_title("transformed")
-
 plt.show()
+
+plt.imsave(f"D:\\Projects\\mgr\\test\\{image_id}_transformed.jpg", result)
