@@ -4,7 +4,7 @@ from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
 import tensorflow as tf
 
 from config import id2code
-from data_generator import generate_training_set, generate_labels, onehot_to_rgb
+from data_generator import generate_training_set, generate_labels, heatmap_to_rgb
 from metrics import dice, mean_iou, iou_coef
 import numpy as np
 from skimage.transform import resize
@@ -35,7 +35,7 @@ loss, dice, acc, mean_iou = model.evaluate(images, labels, verbose=2)
 print('Restored model, accuracy: {:5.2f}%'.format(100 * acc))
 
 images = np.zeros((1, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
-test_image = plt.imread("D:\\Projects\\mgr\\test\\3_cropped.jpg")[:, :, :IMG_CHANNELS]
+test_image = plt.imread("D:\\Projects\\mgr\\test\\4_test.jpg")[:, :, :IMG_CHANNELS]
 test_image = resize(test_image, (IMG_HEIGHT, IMG_WIDTH), preserve_range=True)
 images[0] = test_image
 
@@ -48,10 +48,10 @@ f, axarr = plt.subplots(2, 3)
 axarr[1][2].imshow(images[0])
 axarr[1][2].set_title("original")
 
-axarr[1][1].imshow(onehot_to_rgb(label, id2code))
+axarr[1][1].imshow(heatmap_to_rgb(label, id2code))
 axarr[1][1].set_title("truth")
 
-axarr[1][0].imshow(onehot_to_rgb(pred_label, id2code))
+axarr[1][0].imshow(heatmap_to_rgb(pred_label, id2code))
 axarr[1][0].set_title("prediction mask")
 
 for i in range(label.shape[2]):

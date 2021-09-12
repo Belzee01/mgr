@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from config import id2code
-from data_generator import onehot_to_rgb
+from data_generator import heatmap_to_rgb
 
 
 class TensorBoardMask2(tf.keras.callbacks.Callback):
@@ -33,7 +33,7 @@ class TensorBoardMask2(tf.keras.callbacks.Callback):
         self.step += 1
 
     def add_masks(self, pred):
-        return onehot_to_rgb(pred, id2code)
+        return heatmap_to_rgb(pred, id2code)
 
     def predict(self, im):
         im = np.expand_dims(im, axis=0)

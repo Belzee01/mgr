@@ -11,15 +11,16 @@ from tensorflow.python.keras.applications.imagenet_utils import preprocess_input
 from tensorflow.python.keras.layers import Conv2D, Dropout, BatchNormalization, \
     Activation, GlobalAveragePooling2D, Lambda, ZeroPadding2D, Concatenate, DepthwiseConv2D
 from tensorflow.python.keras.models import load_model
+from tensorflow.keras.backend import int_shape
 
 from config import color_labels, id2code
-from data_generator import generate_labels, generate_training_set, onehot_to_rgb, shuffle
-from image_preprocessing import gaussian_blur, mean_filter, noisy
+from data_generator import generate_labels, generate_training_set, heatmap_to_rgb, shuffle
+from image_preprocessing import gaussian_blur, mean_filter, noise
 from metrics import dice, iou_coef
 from tensorboard_callbacks import TensorBoardMask2
 
 
-def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', learning_rate=1e-6, OS=8, metrics=[dice]):
+def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', learning_rate=1e-6, metrics=[dice]):
     if n_classes == 1:
         loss = 'binary_crossentropy'
         final_act = 'sigmoid'
@@ -37,109 +38,85 @@ def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', lear
                       metrics=metrics)
         model.summary()
         return model
-    if OS == 8:
-        entry_block3_stride = 1
-        middle_block_rate = 2
-        exit_block_rates = (2, 4)
-        atrous_rates = (12, 24, 36)
-    else:
-        entry_block3_stride = 2
-        middle_block_rate = 1
-        exit_block_rates = (1, 2)
-        atrous_rates = (6, 12, 18)
 
     b = base
     inputs = Input(shape=INPUT_SHAPE)
 
     converted_inputs = tf.keras.layers.Lambda(lambda x: preprocess_input(x, mode='torch'))(inputs)
 
-    x = Conv2D(2 ** (b + 1), (3, 3), strides=(2, 2), name='entry_flow_conv1_1', use_bias=False, padding='same')(
+    x = Conv2D(2 ** (b + 1), (3, 3), strides=(2, 2), name='conv_1_1', use_bias=False, padding='same')(
         converted_inputs)
-    x = BatchNormalization(name='entry_flow_conv1_1_BN')(x)
-    x = Activation(tf.nn.relu)(x)
+    x = BatchNormalization(name='conv_1_1_batch_normalization')(x)
+    x = Activation('relu')(x)
 
     x = Conv2D(2 ** (b + 2), (3, 3), strides=(1, 1), padding='same', use_bias=False, dilation_rate=(1, 1),
-               name='entry_flow_conv1_2')(x)
-    x = BatchNormalization(name='entry_flow_conv1_2_BN')(x)
-    x = Activation(tf.nn.relu)(x)
+               name='conv_1_2')(x)
+    x = BatchNormalization(name='conv_1_2_batch_normalization')(x)
+    x = Activation('relu')(x)
 
-    x = xception_block(x, [128, 128, 128], 'entry_flow_block1', skip_connection_type='conv', stride=2,
+    x = xception_block(x, [128, 128, 128], 'xception_block_1', skip_type='conv', stride=2,
                        depth_activation=False)
-    x, skip1 = xception_block(x, [256, 256, 256], 'entry_flow_block2', skip_connection_type='conv',
+    x, skip1 = xception_block(x, [256, 256, 256], 'xception_block_2', skip_type='conv',
                               stride=2,
                               depth_activation=False, return_skip=True)
 
-    x = xception_block(x, [728, 728, 728], 'entry_flow_block3',
-                       skip_connection_type='conv', stride=entry_block3_stride,
+    x = xception_block(x, [728, 728, 728], 'xception_block_3',
+                       skip_type='conv', stride=1,
                        depth_activation=False)
     for i in range(16):
         x = xception_block(x, [728, 728, 728], 'middle_flow_unit_{}'.format(i + 1),
-                           skip_connection_type='sum', stride=1, rate=middle_block_rate,
+                           skip_type='sum', stride=1, rate=2,
                            depth_activation=False)
 
-    x = xception_block(x, [728, 1024, 1024], 'exit_flow_block1',
-                       skip_connection_type='conv', stride=1, rate=exit_block_rates[0],
+    x = xception_block(x, [728, 1024, 1024], 'xception_block_4',
+                       skip_type='conv', stride=1, rate=2,
                        depth_activation=False)
-    x = xception_block(x, [1536, 1536, 2048], 'exit_flow_block2',
-                       skip_connection_type='none', stride=1, rate=exit_block_rates[1],
+    x = xception_block(x, [1536, 1536, 2048], 'xception_block_5',
+                       skip_type='none', stride=1, rate=4,
                        depth_activation=True)
 
-    # end of feature extractor
-
-    # branching for Atrous Spatial Pyramid Pooling
-    # Image Feature branch
     b4 = GlobalAveragePooling2D()(x)
 
-    # from (b_size, channels)->(b_size, 1, 1, channels)
     b4 = Lambda(lambda x: K.expand_dims(x, 1))(b4)
     b4 = Lambda(lambda x: K.expand_dims(x, 1))(b4)
     b4 = Conv2D(2 ** (b + 4), (1, 1), padding='same', use_bias=False, name='image_pooling')(b4)
-    b4 = BatchNormalization(name='image_pooling_BN', epsilon=1e-5)(b4)
-    b4 = Activation(tf.nn.relu)(b4)
+    b4 = BatchNormalization(name='image_pooling_batch_normalization', epsilon=1e-5)(b4)
+    b4 = Activation('relu')(b4)
 
-    # upsample. have to use compat because of the option align_corners
-    size_before = tf.keras.backend.int_shape(x)
+    size_before = int_shape(x)
     b4 = Lambda(lambda x: tf.compat.v1.image.resize(x, size_before[1:3],
                                                     method='bilinear', align_corners=True))(b4)
-    # simple 1x1
-    b0 = Conv2D(2 ** (b + 4), (1, 1), padding='same', use_bias=False, name='aspp0')(x)
-    b0 = BatchNormalization(name='aspp0_BN', epsilon=1e-5)(b0)
-    b0 = Activation(tf.nn.relu, name='aspp0_activation')(b0)
 
-    # rate = 6 (12)
-    b1 = SepConv_BN(x, 2 ** (b + 4), 'aspp1', rate=atrous_rates[0], depth_activation=True, epsilon=1e-5)
-    # rate = 12 (24)
-    b2 = SepConv_BN(x, 2 ** (b + 4), 'aspp2', rate=atrous_rates[1], depth_activation=True, epsilon=1e-5)
-    # rate = 18 (36)
-    b3 = SepConv_BN(x, 2 ** (b + 4), 'aspp3', rate=atrous_rates[2], depth_activation=True, epsilon=1e-5)
+    b0 = Conv2D(2 ** (b + 4), (1, 1), padding='same', use_bias=False, name='atrous_spatial_pyramid_pooling_base')(x)
+    b0 = BatchNormalization(name='atrous_spatial_pyramid_pooling_base_batch_normalization', epsilon=1e-5)(b0)
+    b0 = Activation('relu', name='atrous_spatial_pyramid_pooling_base_activation')(b0)
 
-    # concatenate ASPP branches & project
+    b1 = separable_conv_with_batch_normalization(x, 2 ** (b + 4), 'atrous_spatial_pyramid_pooling_1', rate=12)
+    b2 = separable_conv_with_batch_normalization(x, 2 ** (b + 4), 'atrous_spatial_pyramid_pooling_2', rate=24)
+    b3 = separable_conv_with_batch_normalization(x, 2 ** (b + 4), 'atrous_spatial_pyramid_pooling_3', rate=36)
+
     x = Concatenate()([b4, b0, b1, b2, b3])
 
     x = Conv2D(2 ** (b + 4), (1, 1), padding='same', use_bias=False, name='concat_projection')(x)
-    x = BatchNormalization(name='concat_projection_BN', epsilon=1e-5)(x)
-    x = Activation(tf.nn.relu)(x)
+    x = BatchNormalization(name='concat_projection_batch_normalization', epsilon=1e-5)(x)
+    x = Activation('relu')(x)
     x = Dropout(0.1)(x)
 
-    # DeepLab v.3+ decoder
-    # Feature projection
-    # x4 (x2) block
-    skip_size = tf.keras.backend.int_shape(skip1)
+    skip_size = int_shape(skip1)
     x = Lambda(lambda xx: tf.compat.v1.image.resize(xx, skip_size[1:3], method='bilinear', align_corners=True))(x)
 
     dec_skip1 = Conv2D(48, (1, 1), padding='same', use_bias=False, name='feature_projection0')(skip1)
-    dec_skip1 = BatchNormalization(name='feature_projection0_BN', epsilon=1e-5)(dec_skip1)
-    dec_skip1 = Activation(tf.nn.relu)(dec_skip1)
+    dec_skip1 = BatchNormalization(name='feature_projection0_batch_normalization', epsilon=1e-5)(dec_skip1)
+    dec_skip1 = Activation('relu')(dec_skip1)
 
     x = Concatenate()([x, dec_skip1])
-    x = SepConv_BN(x, 2 ** (b + 4), 'decoder_conv0', depth_activation=True, epsilon=1e-5)
-    x = SepConv_BN(x, 2 ** (b + 4), 'decoder_conv1', depth_activation=True, epsilon=1e-5)
+    x = separable_conv_with_batch_normalization(x, 2 ** (b + 4), 'decoder_convolution_1')
+    x = separable_conv_with_batch_normalization(x, 2 ** (b + 4), 'decoder_convolution_2')
 
     x = Conv2D(n_classes, (1, 1), padding='same', name="last_layer")(x)
-    size_before3 = tf.keras.backend.int_shape(inputs)
+    size_before3 = int_shape(inputs)
     x = Lambda(lambda xx: tf.compat.v1.image.resize(xx, size_before3[1:3], method='bilinear', align_corners=True))(x)
 
-    # Outputs
     outputs = tf.keras.layers.Activation(final_act)(x)
 
     model = Model(inputs, outputs, name='deeplabv3plus')
@@ -151,65 +128,69 @@ def create(n_classes=1, base=4, pretrained=False, pretrained_model_path='', lear
     return model
 
 
-def xception_block(inputs, depth_list, prefix, skip_connection_type, stride,
+def xception_block(inputs, depth_list, prefix, skip_type, stride,
                    rate=1, depth_activation=False, return_skip=False):
-    residual = inputs
+    residual_inputs = inputs
     for i in range(3):
-        residual = SepConv_BN(residual, depth_list[i], prefix + '_separable_conv{}'.format(i + 1),
-                              stride=stride if i == 2 else 1, rate=rate, depth_activation=depth_activation)
+        residual_inputs = separable_conv_with_batch_normalization(residual_inputs, depth_list[i],
+                                                                  prefix + 'xception_separable_conv{}'.format(i + 1),
+                                                                  stride=stride if i == 2 else 1, rate=rate,
+                                                                  depth_activation=depth_activation,
+                                                                  epsilon=1e-3)
         if i == 1:
-            skip = residual
-    if skip_connection_type == 'conv':
-        shortcut = conv2d_same(inputs, depth_list[-1], prefix + '_shortcut', kernel_size=1, stride=stride)
-        shortcut = BatchNormalization(name=prefix + '_shortcut_BN')(shortcut)
-        outputs = layers.add([residual, shortcut])
-    elif skip_connection_type == 'sum':
-        outputs = layers.add([residual, inputs])
-    elif skip_connection_type == 'none':
-        outputs = residual
+            skip = residual_inputs
+    if skip_type == 'conv':
+        shortcut = shortcut_conv(inputs, depth_list[-1], prefix + '_shortcut', kernel_size=1, stride=stride)
+        shortcut = BatchNormalization(name=prefix + '_shortcut_batch_normalization')(shortcut)
+        outputs = layers.add([residual_inputs, shortcut])
+    elif skip_type == 'sum':
+        outputs = layers.add([residual_inputs, inputs])
+    elif skip_type == 'none':
+        outputs = residual_inputs
     if return_skip:
         return outputs, skip
     else:
         return outputs
 
 
-def conv2d_same(x, filters, prefix, stride=1, kernel_size=3, rate=1):
+def shortcut_conv(x, filters, prefix, stride=1, kernel_size=3, rate=1):
     if stride == 1:
         return Conv2D(filters, (kernel_size, kernel_size), strides=(stride, stride), padding='same', use_bias=False,
                       dilation_rate=(rate, rate), name=prefix)(x)
     else:
-        kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
-        pad_total = kernel_size_effective - 1
-        pad_beg = pad_total // 2
-        pad_end = pad_total - pad_beg
-        x = ZeroPadding2D((pad_beg, pad_end))(x)
+        x = effective_padding(x, kernel_size, rate)
         return Conv2D(filters, (kernel_size, kernel_size), strides=(stride, stride), padding='valid', use_bias=False,
                       dilation_rate=(rate, rate), name=prefix)(x)
 
 
-def SepConv_BN(x, filters, prefix, stride=1, kernel_size=3, rate=1, depth_activation=False, epsilon=1e-3):
+def effective_padding(x, kernel_size, rate):
+    kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
+    pad_total = kernel_size_effective - 1
+    pad_beg = pad_total // 2
+    pad_end = pad_total - pad_beg
+    return ZeroPadding2D((pad_beg, pad_end))(x)
+
+
+def separable_conv_with_batch_normalization(x, filters, prefix, stride=1, kernel_size=3, rate=1, depth_activation=True,
+                                            epsilon=1e-5):
     if stride == 1:
         depth_padding = 'same'
     else:
-        kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
-        pad_total = kernel_size_effective - 1
-        pad_beg = pad_total // 2
-        pad_end = pad_total - pad_beg
-        x = ZeroPadding2D((pad_beg, pad_end))(x)
+        x = effective_padding(x, kernel_size, rate)
         depth_padding = 'valid'
 
     if not depth_activation:
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('relu')(x)
     x = DepthwiseConv2D((kernel_size, kernel_size), strides=(stride, stride), dilation_rate=(rate, rate),
                         padding=depth_padding, use_bias=False, name=prefix + '_depthwise')(x)
     x = BatchNormalization(name=prefix + '_depthwise_BN', epsilon=epsilon)(x)
     if depth_activation:
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('relu')(x)
     x = Conv2D(filters, (1, 1), padding='same',
                use_bias=False, name=prefix + '_pointwise')(x)
-    x = BatchNormalization(name=prefix + '_pointwise_BN', epsilon=epsilon)(x)
+    x = BatchNormalization(name=prefix + '_pointwise_batch_normalization', epsilon=epsilon)(x)
     if depth_activation:
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('relu')(x)
 
     return x
 
@@ -232,10 +213,10 @@ train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CH
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
 
 # Image manipulations
-train_inputs[:999] = [noisy(noise_type="gauss", image=image) for image in train_inputs[:999]]
-train_inputs[1000:1999] = [noisy(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
-train_inputs[2000:2999] = [noisy(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
-train_inputs[3000:3999] = [noisy(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
+train_inputs[:999] = [noise(noise_type="gauss", image=image) for image in train_inputs[:999]]
+train_inputs[1000:1999] = [noise(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
+train_inputs[2000:2999] = [noise(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
+train_inputs[3000:3999] = [noise(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
 
 train_inputs[4000:4999] = [mean_filter(image) for image in train_inputs[4000:4999]]
 train_inputs[5000:5999] = [gaussian_blur(image) for image in train_inputs[5000:5999]]
@@ -286,10 +267,10 @@ for i in range(TEST_LENGTH):
     ax.set_title("original")
 
     ax = fig.add_subplot(1, 3, 2)
-    ax.imshow(onehot_to_rgb(y_predi[i], id2code))
+    ax.imshow(heatmap_to_rgb(y_predi[i], id2code))
     ax.set_title("predicted class")
 
     ax = fig.add_subplot(1, 3, 3)
-    ax.imshow(onehot_to_rgb(test_labels[i], id2code))
+    ax.imshow(heatmap_to_rgb(test_labels[i], id2code))
     ax.set_title("true class")
     plt.show()

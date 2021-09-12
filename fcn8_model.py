@@ -10,8 +10,8 @@ from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose
 from tensorflow.python.keras.models import load_model
 
 from config import color_labels, id2code
-from data_generator import generate_labels, generate_training_set, onehot_to_rgb, shuffle
-from image_preprocessing import noisy, mean_filter, gaussian_blur
+from data_generator import generate_labels, generate_training_set, heatmap_to_rgb, shuffle
+from image_preprocessing import noise, mean_filter, gaussian_blur
 from metrics import dice, iou_coef
 from tensorboard_callbacks import TensorBoardMask2
 
@@ -118,10 +118,10 @@ train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CH
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
 
 # Image manipulations
-train_inputs[:999] = [noisy(noise_type="gauss", image=image) for image in train_inputs[:999]]
-train_inputs[1000:1999] = [noisy(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
-train_inputs[2000:2999] = [noisy(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
-train_inputs[3000:3999] = [noisy(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
+train_inputs[:999] = [noise(noise_type="gauss", image=image) for image in train_inputs[:999]]
+train_inputs[1000:1999] = [noise(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
+train_inputs[2000:2999] = [noise(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
+train_inputs[3000:3999] = [noise(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
 
 train_inputs[4000:4999] = [mean_filter(image) for image in train_inputs[4000:4999]]
 train_inputs[5000:5999] = [gaussian_blur(image) for image in train_inputs[5000:5999]]
@@ -173,10 +173,10 @@ for i in range(TEST_LENGTH):
     ax.set_title("original")
 
     ax = fig.add_subplot(1, 3, 2)
-    ax.imshow(onehot_to_rgb(y_predi[i], id2code))
+    ax.imshow(heatmap_to_rgb(y_predi[i], id2code))
     ax.set_title("predicted class")
 
     ax = fig.add_subplot(1, 3, 3)
-    ax.imshow(onehot_to_rgb(test_labels[i], id2code))
+    ax.imshow(heatmap_to_rgb(test_labels[i], id2code))
     ax.set_title("true class")
     plt.show()

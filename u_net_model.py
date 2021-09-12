@@ -8,8 +8,8 @@ from tensorflow.keras.models import load_model
 from tensorflow.python.keras.applications.imagenet_utils import preprocess_input, _preprocess_symbolic_input
 
 from config import color_labels, id2code
-from data_generator import generate_training_set, generate_labels, onehot_to_rgb, shuffle
-from image_preprocessing import gaussian_blur, mean_filter, noisy
+from data_generator import generate_training_set, generate_labels, heatmap_to_rgb, shuffle
+from image_preprocessing import gaussian_blur, mean_filter, noise
 from metrics import dice, iou_coef
 from tensorboard_callbacks import TensorBoardMask2
 
@@ -36,125 +36,110 @@ def create(n_classes=1, base=2, pretrained=False, pretrained_model_path='', lear
     inputs = tf.keras.layers.Input(INPUT_SHAPE)
     b = base
 
-    # Contraction path
-    # Step 1
     converted_inputs = tf.keras.layers.Lambda(lambda x: preprocess_input(x, mode='torch'))(inputs)
-    c_1 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(
+    conv_1 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(
         converted_inputs)
-    c_1 = tf.keras.layers.Dropout(0.2)(c_1)
-    c_1 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(
-        c_1)
+    conv_1 = tf.keras.layers.Dropout(0.2)(conv_1)
+    conv_1 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(
+        conv_1)
 
-    # Step 2
-    p_1 = tf.keras.layers.MaxPooling2D((2, 2))(c_1)
-    c_2 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(p_1)
-    c_2 = tf.keras.layers.Dropout(0.2)(c_2)
-    c_2 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_2)
+    pool_1 = tf.keras.layers.MaxPooling2D((2, 2))(conv_1)
+    conv_2 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(pool_1)
+    conv_2 = tf.keras.layers.Dropout(0.2)(conv_2)
+    conv_2 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_2)
 
-    # Step 3
-    p_2 = tf.keras.layers.MaxPooling2D((2, 2))(c_2)
-    c_3 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(p_2)
-    c_3 = tf.keras.layers.Dropout(0.2)(c_3)
-    c_3 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_3)
+    pool_2 = tf.keras.layers.MaxPooling2D((2, 2))(conv_2)
+    conv_3 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(pool_2)
+    conv_3 = tf.keras.layers.Dropout(0.2)(conv_3)
+    conv_3 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_3)
 
-    # Step 4
-    p_3 = tf.keras.layers.MaxPooling2D((2, 2))(c_3)
-    c_4 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(p_3)
-    c_4 = tf.keras.layers.Dropout(0.2)(c_4)
-    c_4 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_4)
+    pool_3 = tf.keras.layers.MaxPooling2D((2, 2))(conv_3)
+    conv_4 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(pool_3)
+    conv_4 = tf.keras.layers.Dropout(0.2)(conv_4)
+    conv_4 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_4)
 
-    # Step 5
-    p_4 = tf.keras.layers.MaxPooling2D((2, 2))(c_4)
-    c_5 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(p_4)
-    c_5 = tf.keras.layers.Dropout(0.2)(c_5)
-    c_5 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_5)
+    pool_4 = tf.keras.layers.MaxPooling2D((2, 2))(conv_4)
+    conv_5 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(pool_4)
+    conv_5 = tf.keras.layers.Dropout(0.2)(conv_5)
+    conv_5 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_5)
 
-    # Step 6
-    p_5 = tf.keras.layers.MaxPooling2D((2, 2))(c_5)
-    c_6 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(p_5)
-    c_6 = tf.keras.layers.Dropout(0.1)(c_6)
-    c_6 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_6)
+    pool_5 = tf.keras.layers.MaxPooling2D((2, 2))(conv_5)
+    conv_6 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(pool_5)
+    conv_6 = tf.keras.layers.Dropout(0.1)(conv_6)
+    conv_6 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_6)
 
-    # Step 6
-    p_6 = tf.keras.layers.MaxPooling2D((2, 2))(c_6)
-    c_7 = tf.keras.layers.Conv2D(2 ** (b + 6), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(p_6)
-    c_7 = tf.keras.layers.Dropout(0.1)(c_7)
-    c_7 = tf.keras.layers.Conv2D(2 ** (b + 6), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_7)
+    pool_6 = tf.keras.layers.MaxPooling2D((2, 2))(conv_6)
+    conv_7 = tf.keras.layers.Conv2D(2 ** (b + 6), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(pool_6)
+    conv_7 = tf.keras.layers.Dropout(0.1)(conv_7)
+    conv_7 = tf.keras.layers.Conv2D(2 ** (b + 6), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_7)
 
-    # Expansion path
-    # Step 1
-    u_6 = tf.keras.layers.Conv2DTranspose(2 ** (b + 5), (2, 2), strides=(2, 2), padding='same')(c_7)
-    u_6 = tf.keras.layers.concatenate([u_6, c_6])
-    c_8 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(u_6)
+    de_conv_1 = tf.keras.layers.Conv2DTranspose(2 ** (b + 5), (2, 2), strides=(2, 2), padding='same')(conv_7)
+    de_conv_1 = tf.keras.layers.concatenate([de_conv_1, conv_6])
+    conv_8 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(de_conv_1)
 
-    c_8 = tf.keras.layers.Dropout(0.1)(c_8)
-    c_8 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_8)
+    conv_8 = tf.keras.layers.Dropout(0.1)(conv_8)
+    conv_8 = tf.keras.layers.Conv2D(2 ** (b + 5), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_8)
 
-    # Step 2
-    u_7 = tf.keras.layers.Conv2DTranspose(2 ** (b + 4), (2, 2), strides=(2, 2), padding='same')(c_8)
-    u_7 = tf.keras.layers.concatenate([u_7, c_5])
-    c_9 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(u_7)
+    de_conv_2 = tf.keras.layers.Conv2DTranspose(2 ** (b + 4), (2, 2), strides=(2, 2), padding='same')(conv_8)
+    de_conv_2 = tf.keras.layers.concatenate([de_conv_2, conv_5])
+    conv_9 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(de_conv_2)
 
-    c_9 = tf.keras.layers.Dropout(0.1)(c_9)
-    c_9 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                 padding='same')(c_9)
+    conv_9 = tf.keras.layers.Dropout(0.1)(conv_9)
+    conv_9 = tf.keras.layers.Conv2D(2 ** (b + 4), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                 padding='same')(conv_9)
 
-    # Step 3
-    u_8 = tf.keras.layers.Conv2DTranspose(2 ** (b + 3), (2, 2), strides=(2, 2), padding='same')(c_9)
-    u_8 = tf.keras.layers.concatenate([u_8, c_4])
-    c_10 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(u_8)
+    de_conv_3 = tf.keras.layers.Conv2DTranspose(2 ** (b + 3), (2, 2), strides=(2, 2), padding='same')(conv_9)
+    de_conv_3 = tf.keras.layers.concatenate([de_conv_3, conv_4])
+    conv_10 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(de_conv_3)
 
-    c_10 = tf.keras.layers.Dropout(0.1)(c_10)
-    c_10 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(c_10)
+    conv_10 = tf.keras.layers.Dropout(0.1)(conv_10)
+    conv_10 = tf.keras.layers.Conv2D(2 ** (b + 3), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(conv_10)
 
-    # Step 4
-    u_9 = tf.keras.layers.Conv2DTranspose(2 ** (b + 2), (2, 2), strides=(2, 2), padding='same')(c_10)
-    u_9 = tf.keras.layers.concatenate([u_9, c_3])
-    c_11 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(u_9)
+    de_conv_4 = tf.keras.layers.Conv2DTranspose(2 ** (b + 2), (2, 2), strides=(2, 2), padding='same')(conv_10)
+    de_conv_4 = tf.keras.layers.concatenate([de_conv_4, conv_3])
+    conv_11 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(de_conv_4)
 
-    c_11 = tf.keras.layers.Dropout(0.1)(c_11)
-    c_11 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(c_11)
+    conv_11 = tf.keras.layers.Dropout(0.1)(conv_11)
+    conv_11 = tf.keras.layers.Conv2D(2 ** (b + 2), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(conv_11)
 
-    # Step 5
-    u_10 = tf.keras.layers.Conv2DTranspose(2 ** (b + 1), (2, 2), strides=(2, 2), padding='same')(c_11)
-    u_10 = tf.keras.layers.concatenate([u_10, c_2])
-    c_12 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(u_10)
+    de_conv_5 = tf.keras.layers.Conv2DTranspose(2 ** (b + 1), (2, 2), strides=(2, 2), padding='same')(conv_11)
+    de_conv_5 = tf.keras.layers.concatenate([de_conv_5, conv_2])
+    conv_12 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(de_conv_5)
 
-    c_12 = tf.keras.layers.Dropout(0.1)(c_12)
-    c_12 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(c_12)
+    conv_12 = tf.keras.layers.Dropout(0.1)(conv_12)
+    conv_12 = tf.keras.layers.Conv2D(2 ** (b + 1), (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(conv_12)
 
-    # Step 6
-    u_11 = tf.keras.layers.Conv2DTranspose(2 ** b, (2, 2), strides=(2, 2), padding='same')(c_12)
-    u_11 = tf.keras.layers.concatenate([u_11, c_1])
-    c_13 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(u_11)
+    de_conv_6 = tf.keras.layers.Conv2DTranspose(2 ** b, (2, 2), strides=(2, 2), padding='same')(conv_12)
+    de_conv_6 = tf.keras.layers.concatenate([de_conv_6, conv_1])
+    conv_13 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(de_conv_6)
 
-    c_13 = tf.keras.layers.Dropout(0.1)(c_13)
-    c_13 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal',
-                                  padding='same')(c_13)
+    conv_13 = tf.keras.layers.Dropout(0.1)(conv_13)
+    conv_13 = tf.keras.layers.Conv2D(2 ** b, (3, 3), activation='relu', kernel_initializer='he_normal',
+                                  padding='same')(conv_13)
 
-    outputs = tf.keras.layers.Conv2D(n_classes, (1, 1), activation=final_act)(c_13)
+    outputs = tf.keras.layers.Conv2D(n_classes, (1, 1), activation=final_act)(conv_13)
 
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate),
@@ -183,10 +168,10 @@ train_inputs = generate_training_set(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH, IMG_CH
 train_labels = generate_labels(TRAIN_LENGTH, IMG_HEIGHT, IMG_WIDTH)
 
 # Image manipulations
-train_inputs[:999] = [noisy(noise_type="gauss", image=image) for image in train_inputs[:999]]
-train_inputs[1000:1999] = [noisy(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
-train_inputs[2000:2999] = [noisy(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
-train_inputs[3000:3999] = [noisy(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
+train_inputs[:999] = [noise(noise_type="gauss", image=image) for image in train_inputs[:999]]
+train_inputs[1000:1999] = [noise(noise_type="s&p", image=image) for image in train_inputs[1000:1999]]
+train_inputs[2000:2999] = [noise(noise_type="poisson", image=image) for image in train_inputs[2000:2999]]
+train_inputs[3000:3999] = [noise(noise_type="speckle", image=image) for image in train_inputs[3000:3999]]
 #
 # train_inputs[4000:4999] = [mean_filter(image) for image in train_inputs[4000:4999]]
 # train_inputs[5000:5999] = [gaussian_blur(image) for image in train_inputs[5000:5999]]
@@ -235,10 +220,10 @@ for i in range(TEST_LENGTH):
     axarr[1][4].imshow(test_inputs[i])
     axarr[1][4].set_title("original")
 
-    axarr[1][3].imshow(onehot_to_rgb(test_labels[i], id2code))
+    axarr[1][3].imshow(heatmap_to_rgb(test_labels[i], id2code))
     axarr[1][3].set_title("truth")
 
-    axarr[1][2].imshow(onehot_to_rgb(y_pred[i], id2code))
+    axarr[1][2].imshow(heatmap_to_rgb(y_pred[i], id2code))
     axarr[1][2].set_title("prediction mask")
 
     for cl in range(len(color_labels)):

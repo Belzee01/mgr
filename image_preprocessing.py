@@ -14,45 +14,41 @@ def gaussian_blur(input_image, filter_size=3):
     return cv2.cvtColor(new_image, cv2.COLOR_HSV2RGB)
 
 
-def noisy(noise_type, image):
+def noise(noise_type, image):
     image = image / 255.0
     if noise_type == "gauss":
-        row, col, ch = image.shape
         mean = 0
-        var = 0.05
-        sigma = var ** 0.5
-        gauss = np.random.normal(mean, sigma, (row, col, ch))
-        gauss = gauss.reshape(row, col, ch)
-        noisy = image + gauss
-        noisy[noisy < 0.0] = 0.0
-        noisy[noisy > 1.0] = 1.0
-        noisy = noisy * 255
-        return noisy.astype(dtype=np.uint8)
+        sigma = 0.05 ** 0.5
+        gauss = np.random.normal(mean, sigma, image.shape)
+        gauss = gauss.reshape(image.shape)
+        noised_image = image + gauss
+        noised_image[noised_image < 0.0] = 0.0
+        noised_image[noised_image > 1.0] = 1.0
+        noised_image = noised_image * 255
+        return noised_image.astype(dtype=np.uint8)
     elif noise_type == "s&p":
-        row, col, ch = image.shape
-        s_vs_p = 0.5
-        amount = 0.004
-        out = np.copy(image)
-        num_salt = np.ceil(amount * image.size * s_vs_p)
+        s_p_factor = 0.5
+        salt_factor = 0.004
+        noised_image = np.copy(image)
+        num_salt = np.ceil(salt_factor * image.size * s_p_factor)
         coords = [np.random.randint(0, i - 1, int(num_salt)) for i in image.shape]
-        out[coords] = 1
-        num_pepper = np.ceil(amount * image.size * (1. - s_vs_p))
+        noised_image[coords] = 1
+        num_pepper = np.ceil(salt_factor * image.size * (1. - s_p_factor))
         coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in image.shape]
-        out[coords] = 0
-        out = out * 255
-        return out.astype(dtype=np.uint8)
+        noised_image[coords] = 0
+        noised_image = noised_image * 255
+        return noised_image.astype(dtype=np.uint8)
     elif noise_type == "poisson":
-        vals = len(np.unique(image))
-        vals = 2 ** np.ceil(np.log2(vals))
-        noisy = np.random.poisson(image * vals) / float(vals)
-        noisy = noisy * 255
-        return noisy.astype(dtype=np.uint8)
+        factor = len(np.unique(image))
+        factor = 2 ** np.ceil(np.log2(factor))
+        noised_image = np.random.poisson(image * factor) / float(factor)
+        noised_image = noised_image * 255
+        return noised_image.astype(dtype=np.uint8)
     elif noise_type == "speckle":
-        row, col, ch = image.shape
-        gauss = np.random.randn(row, col, ch)
-        gauss = gauss.reshape(row, col, ch)
-        noisy = image + image * gauss
-        noisy[noisy < 0.0] = 0.0
-        noisy[noisy > 1.0] = 1.0
-        noisy = noisy * 255
-        return noisy.astype(dtype=np.uint8)
+        gauss = np.random.randn(image.shape)
+        gauss = gauss.reshape(image.shape)
+        noised_image = image + image * gauss
+        noised_image[noised_image < 0.0] = 0.0
+        noised_image[noised_image > 1.0] = 1.0
+        noised_image = noised_image * 255
+        return noised_image.astype(dtype=np.uint8)

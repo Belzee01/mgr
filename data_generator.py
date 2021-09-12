@@ -10,7 +10,7 @@ from tqdm import tqdm
 from config import color_labels, data_set_path, id2code
 
 
-def rgb_to_onehot(rgb_image, colormap):
+def rgb_to_heatmap(rgb_image, colormap):
     num_classes = len(colormap)
     shape = rgb_image.shape[:2] + (num_classes,)
     encoded_image = np.zeros(shape, dtype=np.int8)
@@ -20,13 +20,13 @@ def rgb_to_onehot(rgb_image, colormap):
     return encoded_image
 
 
-def onehot_to_rgb(onehot, colormap):
-    single_layer = np.zeros((onehot.shape[:2]), dtype=np.uint8)
-    for i in range(onehot.shape[2]):
-        mask = np.round(onehot[:, :, i])
+def heatmap_to_rgb(heatmap, colormap):
+    single_layer = np.zeros((heatmap.shape[:2]), dtype=np.uint8)
+    for i in range(heatmap.shape[2]):
+        mask = np.round(heatmap[:, :, i])
         mask = mask.astype(dtype=np.uint8)
         single_layer[mask == 1] = (i + 1)
-    output = np.zeros(onehot.shape[:2] + (3,))
+    output = np.zeros(heatmap.shape[:2] + (3,))
     for k in colormap.keys():
         output[single_layer == k] = color_labels[colormap[k]]
     return np.uint8(output)
@@ -40,10 +40,10 @@ def prediction_to_rgb(pred, colormap):
     return np.uint8(output)
 
 
-def generate_training_set(training_lenth, img_height, img_width, img_channels):
+def generate_training_set(training_length, img_height, img_width, img_channels):
     masks_path = data_set_path + '/CelebA-HQ-img/'
-    train_inputs = np.zeros((training_lenth, img_height, img_width, img_channels), dtype=np.uint8)
-    for seq, _id in tqdm(enumerate(range(0, training_lenth)), total=training_lenth):
+    train_inputs = np.zeros((training_length, img_height, img_width, img_channels), dtype=np.uint8)
+    for seq, _id in tqdm(enumerate(range(0, training_length)), total=training_length):
         train_filename = str(seq) + '.jpg'
         train_path = osp.join(masks_path, train_filename)
         train_input = imread(train_path)[:, :, :img_channels]
@@ -83,7 +83,7 @@ def generate_labels(training_length, img_height, img_width):
 
         output = np.uint8(output)
 
-        encoded = rgb_to_onehot(output, id2code)
+        encoded = rgb_to_heatmap(output, id2code)
         output_images[seq] = encoded
     return output_images
 
